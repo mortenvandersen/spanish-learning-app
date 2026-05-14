@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { useDueUserWords, useReviewUserWord } from '@/hooks/useUserWords';
+import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
 import type { Rating } from '@/services/srs';
 import type { UserWord } from '@/types';
@@ -51,7 +52,7 @@ export default function StudyScreen() {
       <View style={[styles.center, { backgroundColor: palette.background }]}>
         <Text style={{ color: palette.text }}>Failed to load due words.</Text>
         <Text style={[styles.errorDetail, { color: palette.muted }]}>
-          {error instanceof Error ? error.message : String(error)}
+          {describeError(error)}
         </Text>
       </View>
     );

@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { useUserWords } from '@/hooks/useUserWords';
+import { describeError } from '@/services/errors';
 import type { UserWord } from '@/types';
 
 const PAIRS_PER_ROUND = 8;
@@ -107,7 +108,7 @@ export default function PlayScreen() {
       <View style={[styles.center, { backgroundColor: palette.background }]}>
         <Text style={{ color: palette.text }}>Failed to load deck.</Text>
         <Text style={[styles.errorDetail, { color: palette.muted }]}>
-          {error instanceof Error ? error.message : String(error)}
+          {describeError(error)}
         </Text>
       </View>
     );

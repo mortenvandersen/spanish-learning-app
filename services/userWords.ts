@@ -5,6 +5,7 @@
 
 import type { UserWord } from '@/types';
 import { getDeviceId } from './deviceId';
+import { toError } from './errors';
 import { initialState, nextState, type Rating, type SrsState } from './srs';
 import { getSupabase } from './supabase';
 
@@ -59,7 +60,7 @@ export async function listUserWords(): Promise<UserWord[]> {
     .select(SELECT_COLUMNS)
     .eq('user_id', userId)
     .order('added_at', { ascending: false });
-  if (error) throw error;
+  if (error) throw toError(error);
   return (data as UserWordRow[]).map(toUserWord);
 }
 
@@ -72,7 +73,7 @@ export async function listDueUserWords(now: Date = new Date()): Promise<UserWord
     .eq('user_id', userId)
     .lte('srs_due', now.toISOString())
     .order('srs_due', { ascending: true });
-  if (error) throw error;
+  if (error) throw toError(error);
   return (data as UserWordRow[]).map(toUserWord);
 }
 
@@ -96,7 +97,7 @@ export async function captureWord(input: CaptureWordInput): Promise<UserWord> {
     })
     .select(SELECT_COLUMNS)
     .single();
-  if (error) throw error;
+  if (error) throw toError(error);
   return toUserWord(data as UserWordRow);
 }
 
@@ -124,6 +125,6 @@ export async function reviewUserWord(
     .eq('id', word.id)
     .select(SELECT_COLUMNS)
     .single();
-  if (error) throw error;
+  if (error) throw toError(error);
   return toUserWord(data as UserWordRow);
 }

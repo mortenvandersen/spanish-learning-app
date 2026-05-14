@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { usePassages } from '@/hooks/usePassages';
+import { describeError } from '@/services/errors';
 
 export default function ReadScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -30,7 +31,7 @@ export default function ReadScreen() {
       <View style={[styles.center, { backgroundColor: palette.background }]}>
         <Text style={{ color: palette.text }}>Failed to load passages.</Text>
         <Text style={[styles.errorDetail, { color: palette.muted }]}>
-          {error instanceof Error ? error.message : String(error)}
+          {describeError(error)}
         </Text>
       </View>
     );

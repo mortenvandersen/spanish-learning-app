@@ -15,6 +15,7 @@ import { Colors } from '@/constants/Colors';
 import { usePassage } from '@/hooks/usePassages';
 import { useCaptureWord, useUserWords } from '@/hooks/useUserWords';
 import { lookup } from '@/services/dictionary';
+import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
 import { findSentenceAt, tokenize } from '@/services/tokenize';
 import type { LookupResult, Passage } from '@/types';
@@ -65,7 +66,7 @@ export default function ReaderScreen() {
         sentence,
         loading: false,
         result: null,
-        error: e instanceof Error ? e.message : String(e),
+        error: describeError(e),
       });
     }
   }, []);
@@ -96,7 +97,7 @@ export default function ReaderScreen() {
         <Text style={{ color: palette.text }}>Failed to load passage.</Text>
         {error && (
           <Text style={[styles.errorDetail, { color: palette.muted }]}>
-            {error instanceof Error ? error.message : String(error)}
+            {describeError(error)}
           </Text>
         )}
       </View>
@@ -159,9 +160,7 @@ export default function ReaderScreen() {
                 onAddToDeck={handleAddToDeck}
                 captureLoading={captureMutation.isPending}
                 captureError={
-                  captureMutation.error instanceof Error
-                    ? captureMutation.error.message
-                    : null
+                  captureMutation.error ? describeError(captureMutation.error) : null
                 }
               />
             )}

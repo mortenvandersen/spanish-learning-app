@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { toError } from '@/services/errors';
 import { getSupabase } from '@/services/supabase';
 import type { Passage } from '@/types';
 
@@ -33,7 +34,7 @@ export function usePassages() {
         .from('passages')
         .select(SELECT_COLUMNS)
         .order('created_at', { ascending: true });
-      if (error) throw error;
+      if (error) throw toError(error);
       return (data as PassageRow[]).map(toPassage);
     },
   });
@@ -51,7 +52,7 @@ export function usePassage(id: string | undefined) {
         .select(SELECT_COLUMNS)
         .eq('id', id)
         .single();
-      if (error) throw error;
+      if (error) throw toError(error);
       return toPassage(data as PassageRow);
     },
   });
