@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -122,16 +124,20 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[
-            styles.sheet,
-            { backgroundColor: palette.background, borderTopColor: palette.border },
-          ]}
-          onPress={() => {
-            /* absorb taps so the backdrop doesn't dismiss */
-          }}
-        >
+      <KeyboardAvoidingView
+        style={styles.kbAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Pressable style={styles.backdrop} onPress={onClose}>
+          <Pressable
+            style={[
+              styles.sheet,
+              { backgroundColor: palette.background, borderTopColor: palette.border },
+            ]}
+            onPress={() => {
+              /* absorb taps so the backdrop doesn't dismiss */
+            }}
+          >
           <View style={styles.headerRow}>
             <Text style={[styles.title, { color: palette.text }]}>Add a word</Text>
             <Pressable onPress={onClose} hitSlop={12}>
@@ -186,8 +192,9 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
               onAdd={handleAdd}
             />
           )}
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -255,6 +262,7 @@ function ResultCard({
 }
 
 const styles = StyleSheet.create({
+  kbAvoid: { flex: 1 },
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',
