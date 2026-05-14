@@ -53,7 +53,7 @@ export default function ReadScreen() {
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
-          <Link href={`/reader/${item.id}`} asChild>
+          <Link href={{ pathname: '/reader/[id]', params: { id: item.id } }} asChild>
             <Pressable style={[styles.card, { borderColor: palette.border }]}>
               <Text style={[styles.title, { color: palette.text }]}>{item.title}</Text>
               <Text style={[styles.level, { color: palette.muted }]}>{item.level}</Text>
