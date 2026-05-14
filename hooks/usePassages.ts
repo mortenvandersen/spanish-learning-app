@@ -11,6 +11,8 @@ interface PassageRow {
   created_at: string;
 }
 
+const SELECT_COLUMNS = 'id, title, body, level, notes, created_at';
+
 function toPassage(row: PassageRow): Passage {
   return {
     id: row.id,
@@ -29,10 +31,28 @@ export function usePassages() {
       const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('passages')
-        .select('id, title, body, level, notes, created_at')
+        .select(SELECT_COLUMNS)
         .order('created_at', { ascending: true });
       if (error) throw error;
       return (data as PassageRow[]).map(toPassage);
+    },
+  });
+}
+
+export function usePassage(id: string | undefined) {
+  return useQuery<Passage | null>({
+    queryKey: ['passage', id],
+    enabled: !!id,
+    queryFn: async () => {
+      if (!id) return null;
+      const supabase = await getSupabase();
+      const { data, error } = await supabase
+        .from('passages')
+        .select(SELECT_COLUMNS)
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return toPassage(data as PassageRow);
     },
   });
 }
