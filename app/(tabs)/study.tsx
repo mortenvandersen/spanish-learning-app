@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
-import { useDueUserWords, useReviewUserWord } from '@/hooks/useUserWords';
+import { useDueUserWords, useReviewUserWord, useStudyStats } from '@/hooks/useUserWords';
 import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
 import { formatInterval, nextState, type Rating, type SrsState } from '@/services/srs';
-import type { UserWord } from '@/types';
+import type { StudyStats, UserWord } from '@/types';
 
 type Palette = (typeof Colors)['light' | 'dark'];
 
@@ -28,6 +28,7 @@ export default function StudyScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { data: dueWords, isLoading, error } = useDueUserWords();
+  const { data: stats } = useStudyStats();
   const reviewMutation = useReviewUserWord();
 
   const [queue, setQueue] = useState<UserWord[]>([]);
@@ -65,12 +66,18 @@ export default function StudyScreen() {
 
   if (!current) {
     return (
-      <View style={[styles.center, { backgroundColor: palette.background }]}>
-        <Text style={[styles.empty, { color: palette.text }]}>All caught up.</Text>
-        <Text style={[styles.emptyHint, { color: palette.muted }]}>
-          Capture words from the Read tab to build your deck.
-        </Text>
-      </View>
+      <SafeAreaView
+        edges={['left', 'right', 'bottom']}
+        style={[styles.root, { backgroundColor: palette.background }]}
+      >
+        {stats && <Dashboard stats={stats} palette={palette} />}
+        <View style={styles.center}>
+          <Text style={[styles.empty, { color: palette.text }]}>All caught up.</Text>
+          <Text style={[styles.emptyHint, { color: palette.muted }]}>
+            Capture words from the Read tab to build your deck.
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -87,6 +94,8 @@ export default function StudyScreen() {
       edges={['left', 'right', 'bottom']}
       style={[styles.root, { backgroundColor: palette.background }]}
     >
+      {stats && <Dashboard stats={stats} palette={palette} />}
+
       <View style={styles.header}>
         <Text style={[styles.counter, { color: palette.muted }]}>
           {remaining} card{remaining === 1 ? '' : 's'} left
@@ -124,6 +133,55 @@ export default function StudyScreen() {
         </View>
       )}
     </SafeAreaView>
+  );
+}
+
+function Dashboard({ stats, palette }: { stats: StudyStats; palette: Palette }) {
+  const now = new Date();
+  return (
+    <View style={[styles.dashboard, { borderColor: palette.border }]}>
+      <View style={styles.dashboardRow}>
+        <DashboardStat label="Done today" value={stats.doneToday} palette={palette} />
+        <DashboardStat label="Due now" value={stats.dueNow} palette={palette} />
+      </View>
+      <View style={styles.forecastRow}>
+        {stats.next7Days.map((count, i) => {
+          const d = new Date(now);
+          d.setDate(d.getDate() + i + 1);
+          const day = d.toLocaleDateString('en-US', { weekday: 'short' });
+          return (
+            <View key={i} style={styles.forecastCell}>
+              <Text style={[styles.forecastDay, { color: palette.muted }]}>{day}</Text>
+              <Text
+                style={[
+                  styles.forecastCount,
+                  { color: count > 0 ? palette.text : palette.muted },
+                ]}
+              >
+                {count}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function DashboardStat({
+  label,
+  value,
+  palette,
+}: {
+  label: string;
+  value: number;
+  palette: Palette;
+}) {
+  return (
+    <View style={styles.statCell}>
+      <Text style={[styles.statLabel, { color: palette.muted }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: palette.text }]}>{value}</Text>
+    </View>
   );
 }
 
@@ -243,6 +301,26 @@ const styles = StyleSheet.create({
   },
   ratingText: { fontSize: 14, fontWeight: '600' },
   ratingInterval: { fontSize: 11, marginTop: 4 },
+  dashboard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  dashboardRow: { flexDirection: 'row', gap: 16 },
+  statCell: { flex: 1 },
+  statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statValue: { fontSize: 22, fontWeight: '600', marginTop: 2 },
+  forecastRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#80808040',
+  },
+  forecastCell: { flex: 1, alignItems: 'center' },
+  forecastDay: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 },
+  forecastCount: { fontSize: 14, fontWeight: '500', marginTop: 2 },
   spanishRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   speakBtn: { fontSize: 22 },
 });

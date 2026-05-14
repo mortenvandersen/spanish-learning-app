@@ -45,4 +45,11 @@ export interface UserWord {
   srsEase: number;
   srsRepetitions: number;
   direction: CardDirection;
+  lastReviewedAt: string | null;
+}
+
+export interface StudyStats {
+  doneToday: number;       // cards reviewed since local-day start
+  dueNow: number;          // overdue + due today
+  next7Days: number[];     // length 7, next7Days[0] = tomorrow, [6] = 7 days out
 }

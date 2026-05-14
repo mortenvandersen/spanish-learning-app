@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   captureWord,
+  getStudyStats,
   listDueUserWords,
   listUserWords,
   reviewUserWord,
@@ -11,6 +12,7 @@ import type { UserWord } from '@/types';
 
 const ALL_KEY = ['userWords'] as const;
 const DUE_KEY = ['userWords', 'due'] as const;
+const STATS_KEY = ['userWords', 'stats'] as const;
 
 export function useUserWords() {
   return useQuery({
@@ -23,6 +25,13 @@ export function useDueUserWords() {
   return useQuery({
     queryKey: DUE_KEY,
     queryFn: () => listDueUserWords(),
+  });
+}
+
+export function useStudyStats() {
+  return useQuery({
+    queryKey: STATS_KEY,
+    queryFn: () => getStudyStats(),
   });
 }
 

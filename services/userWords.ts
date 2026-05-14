@@ -7,7 +7,7 @@
  * carry independent SRS state.
  */
 
-import type { CardDirection, UserWord } from '@/types';
+import type { CardDirection, StudyStats, UserWord } from '@/types';
 import { getDeviceId } from './deviceId';
 import { toError } from './errors';
 import { initialState, nextState, type Rating, type SrsState } from './srs';
@@ -27,10 +27,11 @@ interface UserWordRow {
   srs_ease: number;
   srs_repetitions: number;
   direction: CardDirection;
+  last_reviewed_at: string | null;
 }
 
 const SELECT_COLUMNS =
-  'id, user_id, spanish, english, part_of_speech, source_passage_id, source_sentence, added_at, srs_due, srs_interval, srs_ease, srs_repetitions, direction';
+  'id, user_id, spanish, english, part_of_speech, source_passage_id, source_sentence, added_at, srs_due, srs_interval, srs_ease, srs_repetitions, direction, last_reviewed_at';
 
 function toUserWord(row: UserWordRow): UserWord {
   return {
@@ -47,6 +48,7 @@ function toUserWord(row: UserWordRow): UserWord {
     srsEase: row.srs_ease,
     srsRepetitions: row.srs_repetitions,
     direction: row.direction,
+    lastReviewedAt: row.last_reviewed_at,
   };
 }
 
@@ -130,10 +132,47 @@ export async function reviewUserWord(
       srs_interval: next.interval,
       srs_ease: next.ease,
       srs_repetitions: next.repetitions,
+      last_reviewed_at: now.toISOString(),
     })
     .eq('id', word.id)
     .select(SELECT_COLUMNS)
     .single();
   if (error) throw toError(error);
   return toUserWord(data as UserWordRow);
+}
+
+function startOfLocalDay(d: Date): Date {
+  const r = new Date(d);
+  r.setHours(0, 0, 0, 0);
+  return r;
+}
+
+export async function getStudyStats(now: Date = new Date()): Promise<StudyStats> {
+  const supabase = await getSupabase();
+  const userId = await getDeviceId();
+  const { data, error } = await supabase
+    .from('user_words')
+    .select('srs_due, last_reviewed_at')
+    .eq('user_id', userId);
+  if (error) throw toError(error);
+
+  const todayStart = startOfLocalDay(now);
+  let doneToday = 0;
+  let dueNow = 0;
+  const next7Days = new Array(7).fill(0) as number[];
+
+  for (const row of data as { srs_due: string; last_reviewed_at: string | null }[]) {
+    if (row.last_reviewed_at && new Date(row.last_reviewed_at) >= todayStart) {
+      doneToday++;
+    }
+    const due = new Date(row.srs_due);
+    const daysAhead = Math.floor((due.getTime() - todayStart.getTime()) / 86_400_000);
+    if (daysAhead < 1) {
+      dueNow++;
+    } else if (daysAhead <= 7) {
+      next7Days[daysAhead - 1]++;
+    }
+  }
+
+  return { doneToday, dueNow, next7Days };
 }
