@@ -34,7 +34,7 @@ export interface UserWord {
   userId: string;
   spanish: string;
   english: string;
-  partOfSpeech: string | null;
+  partOfSpeech: string;
   sourcePassageId: string | null;
   sourceSentence: string | null;
   addedAt: string;

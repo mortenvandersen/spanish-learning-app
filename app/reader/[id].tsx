@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -13,17 +13,30 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { usePassage } from '@/hooks/usePassages';
+import { useCaptureWord, useUserWords } from '@/hooks/useUserWords';
 import { lookup } from '@/services/dictionary';
-import { tokenize } from '@/services/tokenize';
-import type { LookupResult } from '@/types';
+import { findSentenceAt, tokenize } from '@/services/tokenize';
+import type { LookupResult, Passage } from '@/types';
 
 type Palette = (typeof Colors)['light' | 'dark'];
 
 interface PopoverState {
   surface: string;
+  sentence: string;
   loading: boolean;
   result: LookupResult | null;
   error: string | null;
+}
+
+function capturedKey(spanish: string, partOfSpeech: string): string {
+  return `${spanish}|${partOfSpeech}`;
+}
+
+function englishFromLemma(result: LookupResult): string {
+  return result.lemma.senses
+    .slice(0, 5)
+    .map(s => s.definition)
+    .join('; ');
 }
 
 export default function ReaderScreen() {
@@ -31,22 +44,42 @@ export default function ReaderScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { data: passage, isLoading, error } = usePassage(id);
+  const { data: userWords } = useUserWords();
+  const captureMutation = useCaptureWord();
   const [popover, setPopover] = useState<PopoverState | null>(null);
 
-  const handleWordPress = useCallback(async (surface: string) => {
-    setPopover({ surface, loading: true, result: null, error: null });
+  const capturedKeys = useMemo(
+    () => new Set((userWords ?? []).map(w => capturedKey(w.spanish, w.partOfSpeech))),
+    [userWords],
+  );
+
+  const handleWordPress = useCallback(async (surface: string, sentence: string) => {
+    setPopover({ surface, sentence, loading: true, result: null, error: null });
     try {
       const result = await lookup(surface);
-      setPopover({ surface, loading: false, result, error: null });
+      setPopover({ surface, sentence, loading: false, result, error: null });
     } catch (e) {
       setPopover({
         surface,
+        sentence,
         loading: false,
         result: null,
         error: e instanceof Error ? e.message : String(e),
       });
     }
   }, []);
+
+  const handleAddToDeck = useCallback(() => {
+    if (!popover?.result || !passage) return;
+    const { lemma } = popover.result;
+    captureMutation.mutate({
+      spanish: lemma.lemma,
+      english: englishFromLemma(popover.result),
+      partOfSpeech: lemma.partOfSpeech,
+      sourcePassageId: passage.id,
+      sourceSentence: popover.sentence || null,
+    });
+  }, [popover, passage, captureMutation]);
 
   if (isLoading) {
     return (
@@ -79,19 +112,24 @@ export default function ReaderScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={[styles.title, { color: palette.text }]}>{passage.title}</Text>
         <Text style={[styles.body, { color: palette.text }]}>
-          {tokens.map((tok, i) =>
-            tok.kind === 'word' ? (
+          {tokens.map((tok, i) => {
+            if (tok.kind === 'delim') return <Text key={i}>{tok.text}</Text>;
+            return (
               <Text
                 key={i}
-                onPress={() => handleWordPress(tok.text)}
+                onPress={() => {
+                  const offset = tokens
+                    .slice(0, i)
+                    .reduce((sum, t) => sum + t.text.length, 0);
+                  const sentence = findSentenceAt(passage.body, offset);
+                  handleWordPress(tok.text, sentence);
+                }}
                 style={styles.word}
               >
                 {tok.text}
               </Text>
-            ) : (
-              <Text key={i}>{tok.text}</Text>
-            ),
-          )}
+            );
+          })}
         </Text>
       </ScrollView>
 
@@ -111,7 +149,21 @@ export default function ReaderScreen() {
               /* absorb tap so the backdrop doesn't dismiss */
             }}
           >
-            {popover && <PopoverContent state={popover} palette={palette} />}
+            {popover && (
+              <PopoverContent
+                state={popover}
+                palette={palette}
+                passage={passage}
+                capturedKeys={capturedKeys}
+                onAddToDeck={handleAddToDeck}
+                captureLoading={captureMutation.isPending}
+                captureError={
+                  captureMutation.error instanceof Error
+                    ? captureMutation.error.message
+                    : null
+                }
+              />
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -119,7 +171,24 @@ export default function ReaderScreen() {
   );
 }
 
-function PopoverContent({ state, palette }: { state: PopoverState; palette: Palette }) {
+interface PopoverContentProps {
+  state: PopoverState;
+  palette: Palette;
+  passage: Passage;
+  capturedKeys: Set<string>;
+  onAddToDeck: () => void;
+  captureLoading: boolean;
+  captureError: string | null;
+}
+
+function PopoverContent({
+  state,
+  palette,
+  capturedKeys,
+  onAddToDeck,
+  captureLoading,
+  captureError,
+}: PopoverContentProps) {
   if (state.loading) {
     return (
       <View style={styles.popoverLoading}>
@@ -149,6 +218,7 @@ function PopoverContent({ state, palette }: { state: PopoverState; palette: Pale
   }
 
   const { lemma, grammarFeatures, clitics } = state.result;
+  const isCaptured = capturedKeys.has(capturedKey(lemma.lemma, lemma.partOfSpeech));
   const metaParts: string[] = [lemma.partOfSpeech];
   if (lemma.gender) metaParts.push(`(${lemma.gender})`);
   if (grammarFeatures && grammarFeatures !== 'unknown') metaParts.push(`— ${grammarFeatures}`);
@@ -175,6 +245,25 @@ function PopoverContent({ state, palette }: { state: PopoverState; palette: Pale
           )}
         </View>
       ))}
+
+      <View style={styles.deckRow}>
+        {isCaptured ? (
+          <Text style={[styles.inDeck, { color: palette.muted }]}>✓ in deck</Text>
+        ) : (
+          <Pressable
+            onPress={onAddToDeck}
+            disabled={captureLoading}
+            style={[styles.addBtn, { borderColor: palette.tint }]}
+          >
+            <Text style={{ color: palette.tint, fontWeight: '600' }}>
+              {captureLoading ? 'Adding…' : 'Add to deck'}
+            </Text>
+          </Pressable>
+        )}
+        {captureError && (
+          <Text style={[styles.errorDetail, { color: palette.muted }]}>{captureError}</Text>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -206,4 +295,7 @@ const styles = StyleSheet.create({
   popoverClitics: { fontSize: 13, marginTop: 2, fontStyle: 'italic' },
   sense: { marginTop: 12 },
   example: { fontSize: 13, marginTop: 2, fontStyle: 'italic' },
+  deckRow: { marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  addBtn: { borderWidth: 1.5, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
+  inDeck: { fontSize: 14, fontWeight: '500' },
 });

@@ -1,4 +1,4 @@
-import { tokenize } from './tokenize';
+import { findSentenceAt, tokenize } from './tokenize';
 
 describe('tokenize', () => {
   it('alternates word and delimiter tokens', () => {
@@ -39,5 +39,32 @@ describe('tokenize', () => {
 
   it('returns [] for empty input', () => {
     expect(tokenize('')).toEqual([]);
+  });
+});
+
+describe('findSentenceAt', () => {
+  const body = 'Hola. ¿Cómo estás? Bien, gracias.';
+
+  it('returns the sentence containing the offset', () => {
+    expect(findSentenceAt(body, 0)).toBe('Hola.');           // 'H' in Hola
+    expect(findSentenceAt(body, 8)).toBe('¿Cómo estás?');    // 'ó' in Cómo
+    expect(findSentenceAt(body, 19)).toBe('Bien, gracias.'); // 'B' in Bien
+  });
+
+  it('preserves Spanish opening punctuation as part of the next sentence', () => {
+    const tokens = tokenize(body);
+    const wordIdx = tokens.findIndex(t => t.kind === 'word' && t.text === 'estás');
+    expect(wordIdx).toBeGreaterThan(0);
+    const offset = tokens.slice(0, wordIdx).reduce((sum, t) => sum + t.text.length, 0);
+    expect(findSentenceAt(body, offset)).toBe('¿Cómo estás?');
+  });
+
+  it('returns the whole body when there is no terminal punctuation', () => {
+    expect(findSentenceAt('Sin punto final', 4)).toBe('Sin punto final');
+  });
+
+  it('returns empty for out-of-range offsets', () => {
+    expect(findSentenceAt('', 0)).toBe('');
+    expect(findSentenceAt('hi', 10)).toBe('');
   });
 });
