@@ -23,9 +23,6 @@
           "assets": ["./content/dictionary/spanish-dictionary.db"]
         }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    ]
   }
 }

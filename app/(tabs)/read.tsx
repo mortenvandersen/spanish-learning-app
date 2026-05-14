@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   FlatList,
@@ -16,6 +16,7 @@ import { describeError } from '@/services/errors';
 export default function ReadScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const router = useRouter();
   const { data, isLoading, error } = usePassages();
 
   if (isLoading) {
@@ -53,12 +54,13 @@ export default function ReadScreen() {
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
-          <Link href={{ pathname: '/reader/[id]', params: { id: item.id } }} asChild>
-            <Pressable style={[styles.card, { borderColor: palette.border }]}>
-              <Text style={[styles.title, { color: palette.text }]}>{item.title}</Text>
-              <Text style={[styles.level, { color: palette.muted }]}>{item.level}</Text>
-            </Pressable>
-          </Link>
+          <Pressable
+            onPress={() => router.push(`/reader/${item.id}`)}
+            style={[styles.card, { borderColor: palette.border }]}
+          >
+            <Text style={[styles.title, { color: palette.text }]}>{item.title}</Text>
+            <Text style={[styles.level, { color: palette.muted }]}>{item.level}</Text>
+          </Pressable>
         )}
       />
     </SafeAreaView>
