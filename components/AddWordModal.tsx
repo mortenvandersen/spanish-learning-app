@@ -71,7 +71,10 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
     };
   }, [debounced]);
 
-  // Reset everything when the sheet closes.
+  // Reset everything when the sheet closes. Intentionally depends only on
+  // `visible` — useMutation's result object identity isn't stable across
+  // renders, so including it would loop the effect (re-render -> new
+  // captureMutation ref -> effect re-runs -> setters -> re-render).
   useEffect(() => {
     if (!visible) {
       setQuery('');
@@ -81,7 +84,8 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
       setSearchError(null);
       captureMutation.reset();
     }
-  }, [visible, captureMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const isCaptured =
     result !== null &&
