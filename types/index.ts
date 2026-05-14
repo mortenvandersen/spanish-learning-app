@@ -29,6 +29,8 @@ export interface Passage {
   createdAt: string;
 }
 
+export type CardDirection = 'en_to_es' | 'es_to_en';
+
 export interface UserWord {
   id: string;
   userId: string;
@@ -42,4 +44,5 @@ export interface UserWord {
   srsInterval: number;
   srsEase: number;
   srsRepetitions: number;
+  direction: CardDirection;
 }

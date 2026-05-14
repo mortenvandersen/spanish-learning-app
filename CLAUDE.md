@@ -87,7 +87,8 @@ passages (
   created_at timestamptz default now()
 )
 
--- Per-device captured words with SRS state.
+-- Per-device captured words with SRS state. Two rows per captured word,
+-- one per recall direction; each direction tracks its own SRS state.
 -- user_id is the device-generated UUID (services/deviceId.ts), not auth.uid().
 user_words (
   id uuid primary key,
@@ -102,7 +103,8 @@ user_words (
   srs_interval integer not null default 1,    -- days
   srs_ease real not null default 2.5,
   srs_repetitions integer not null default 0,
-  unique (user_id, spanish, part_of_speech)
+  direction text not null check (direction in ('es_to_en', 'en_to_es')),
+  unique (user_id, spanish, part_of_speech, direction)
 )
 
 -- Grammar topic pages stored as markdown files in /content/grammar/
@@ -139,7 +141,7 @@ Lemma-first is what disambiguates noun/verb collisions: `pueblo` is both a noun 
 
 **Captured words store the source sentence.** `user_words.source_sentence` preserves the context the word was captured in. Reviewing a word inside its original sentence is meaningfully more effective than reviewing it bare; flashcards use this when available.
 
-**Captured words are keyed by lemma + part_of_speech.** When the user taps an inflected form (*tuviera*), the popover shows the lemma (*tener*) and the lemma is what gets added to the deck. The `(user_id, spanish, part_of_speech)` unique constraint allows the same surface lemma to be captured separately for distinct parts of speech (e.g., *banco* as noun, *vino* as verb vs. noun — different captures, different cards).
+**Captured words are keyed by lemma + part_of_speech + direction.** When the user taps an inflected form (*tuviera*), the popover shows the lemma (*tener*) and the lemma is what gets added to the deck. Each "Add to deck" creates **two rows** — one `en_to_es` (front: English, back: Spanish) and one `es_to_en` (front: Spanish, back: English). They share `spanish` + `part_of_speech` but carry independent SRS state, so each direction advances at its own pace. The `(user_id, spanish, part_of_speech, direction)` unique constraint allows the same surface lemma to be captured separately for distinct parts of speech (*banco* noun, *vino* verb vs. noun — different captures, different cards × 2 directions each).
 
 **Grammar content is static markdown, not database content.** Grammar pages rarely change and don't need user-specific data. Shipping them as files in `/content/grammar/` keeps them version-controlled and works offline.
 

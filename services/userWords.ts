@@ -1,9 +1,13 @@
 /**
  * CRUD for the per-device `user_words` table. All queries scope by the
  * device-generated UUID from services/deviceId.ts; that UUID is the user_id.
+ *
+ * Bidirectional cards: each captureWord() insert creates two rows, one per
+ * direction (en_to_es and es_to_en). They share spanish + part_of_speech but
+ * carry independent SRS state.
  */
 
-import type { UserWord } from '@/types';
+import type { CardDirection, UserWord } from '@/types';
 import { getDeviceId } from './deviceId';
 import { toError } from './errors';
 import { initialState, nextState, type Rating, type SrsState } from './srs';
@@ -22,10 +26,11 @@ interface UserWordRow {
   srs_interval: number;
   srs_ease: number;
   srs_repetitions: number;
+  direction: CardDirection;
 }
 
 const SELECT_COLUMNS =
-  'id, user_id, spanish, english, part_of_speech, source_passage_id, source_sentence, added_at, srs_due, srs_interval, srs_ease, srs_repetitions';
+  'id, user_id, spanish, english, part_of_speech, source_passage_id, source_sentence, added_at, srs_due, srs_interval, srs_ease, srs_repetitions, direction';
 
 function toUserWord(row: UserWordRow): UserWord {
   return {
@@ -41,6 +46,7 @@ function toUserWord(row: UserWordRow): UserWord {
     srsInterval: row.srs_interval,
     srsEase: row.srs_ease,
     srsRepetitions: row.srs_repetitions,
+    direction: row.direction,
   };
 }
 
@@ -77,28 +83,31 @@ export async function listDueUserWords(now: Date = new Date()): Promise<UserWord
   return (data as UserWordRow[]).map(toUserWord);
 }
 
-export async function captureWord(input: CaptureWordInput): Promise<UserWord> {
+const DIRECTIONS: CardDirection[] = ['en_to_es', 'es_to_en'];
+
+export async function captureWord(input: CaptureWordInput): Promise<UserWord[]> {
   const supabase = await getSupabase();
   const userId = await getDeviceId();
   const state = initialState();
+  const rows = DIRECTIONS.map(direction => ({
+    user_id: userId,
+    spanish: input.spanish,
+    english: input.english,
+    part_of_speech: input.partOfSpeech,
+    source_passage_id: input.sourcePassageId ?? null,
+    source_sentence: input.sourceSentence ?? null,
+    srs_due: state.due,
+    srs_interval: state.interval,
+    srs_ease: state.ease,
+    srs_repetitions: state.repetitions,
+    direction,
+  }));
   const { data, error } = await supabase
     .from('user_words')
-    .insert({
-      user_id: userId,
-      spanish: input.spanish,
-      english: input.english,
-      part_of_speech: input.partOfSpeech,
-      source_passage_id: input.sourcePassageId ?? null,
-      source_sentence: input.sourceSentence ?? null,
-      srs_due: state.due,
-      srs_interval: state.interval,
-      srs_ease: state.ease,
-      srs_repetitions: state.repetitions,
-    })
-    .select(SELECT_COLUMNS)
-    .single();
+    .insert(rows)
+    .select(SELECT_COLUMNS);
   if (error) throw toError(error);
-  return toUserWord(data as UserWordRow);
+  return (data as UserWordRow[]).map(toUserWord);
 }
 
 export async function reviewUserWord(

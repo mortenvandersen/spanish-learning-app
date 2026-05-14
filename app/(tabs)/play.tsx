@@ -40,12 +40,24 @@ function shuffle<T>(arr: readonly T[]): T[] {
   return a;
 }
 
+function dedupeByWord(deck: UserWord[]): UserWord[] {
+  // Each captured word has two rows (en_to_es and es_to_en); the game
+  // only wants one entry per word, regardless of direction.
+  const seen = new Map<string, UserWord>();
+  for (const w of deck) {
+    const key = `${w.spanish}|${w.partOfSpeech}`;
+    if (!seen.has(key)) seen.set(key, w);
+  }
+  return Array.from(seen.values());
+}
+
 function pickGameCards(deck: UserWord[]): GameCard[] {
-  if (deck.length < PAIRS_PER_ROUND) return [];
-  const sample = shuffle(deck).slice(0, PAIRS_PER_ROUND);
+  const unique = dedupeByWord(deck);
+  if (unique.length < PAIRS_PER_ROUND) return [];
+  const sample = shuffle(unique).slice(0, PAIRS_PER_ROUND);
   const halves = sample.flatMap<Omit<GameCard, 'index'>>(w => [
-    { wordId: w.id, side: 'es', text: w.spanish },
-    { wordId: w.id, side: 'en', text: w.english },
+    { wordId: `${w.spanish}|${w.partOfSpeech}`, side: 'es', text: w.spanish },
+    { wordId: `${w.spanish}|${w.partOfSpeech}`, side: 'en', text: w.english },
   ]);
   return shuffle(halves).map((c, i) => ({ ...c, index: i }));
 }
@@ -114,15 +126,15 @@ export default function PlayScreen() {
     );
   }
 
-  const deckSize = deck?.length ?? 0;
-  if (deckSize < PAIRS_PER_ROUND) {
+  const uniqueDeckSize = deck ? dedupeByWord(deck).length : 0;
+  if (uniqueDeckSize < PAIRS_PER_ROUND) {
     return (
       <View style={[styles.center, { backgroundColor: palette.background }]}>
         <Text style={[styles.empty, { color: palette.text }]}>
           Need at least {PAIRS_PER_ROUND} captured words to play.
         </Text>
         <Text style={[styles.emptyHint, { color: palette.muted }]}>
-          You have {deckSize}. Capture more in the Read tab.
+          You have {uniqueDeckSize}. Capture more in the Read tab.
         </Text>
       </View>
     );

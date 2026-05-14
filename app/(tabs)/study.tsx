@@ -157,22 +157,44 @@ function CardFace({
   revealed: boolean;
   palette: Palette;
 }) {
+  const spanishOnFront = word.direction === 'es_to_en';
+  const frontText = spanishOnFront ? word.spanish : word.english;
+  const backText = spanishOnFront ? word.english : word.spanish;
+  const backIsSpanish = !spanishOnFront;
+
   if (!revealed) {
-    return <Text style={[styles.faceText, { color: palette.text }]}>{word.english}</Text>;
+    return (
+      <View style={styles.spanishRow}>
+        <Text style={[styles.faceText, { color: palette.text }]}>{frontText}</Text>
+        {spanishOnFront && (
+          <Pressable
+            onPress={e => {
+              e.stopPropagation();
+              speak(word.spanish);
+            }}
+            hitSlop={12}
+          >
+            <Text style={[styles.speakBtn, { color: palette.tint }]}>🔊</Text>
+          </Pressable>
+        )}
+      </View>
+    );
   }
   return (
     <View style={styles.backFace}>
       <View style={styles.spanishRow}>
-        <Text style={[styles.faceText, { color: palette.text }]}>{word.spanish}</Text>
-        <Pressable
-          onPress={e => {
-            e.stopPropagation();
-            speak(word.spanish);
-          }}
-          hitSlop={12}
-        >
-          <Text style={[styles.speakBtn, { color: palette.tint }]}>🔊</Text>
-        </Pressable>
+        <Text style={[styles.faceText, { color: palette.text }]}>{backText}</Text>
+        {backIsSpanish && (
+          <Pressable
+            onPress={e => {
+              e.stopPropagation();
+              speak(word.spanish);
+            }}
+            hitSlop={12}
+          >
+            <Text style={[styles.speakBtn, { color: palette.tint }]}>🔊</Text>
+          </Pressable>
+        )}
       </View>
       <Text style={[styles.faceMeta, { color: palette.muted }]}>{word.partOfSpeech}</Text>
       {word.sourceSentence && (
