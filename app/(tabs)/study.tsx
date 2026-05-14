@@ -39,6 +39,9 @@ export default function StudyScreen() {
     }
   }, [dueWords, queue.length]);
 
+  // Must be called unconditionally — hook order has to be stable across renders.
+  const previews = useNextIntervals(queue[0]);
+
   if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: palette.background }]}>
@@ -78,7 +81,6 @@ export default function StudyScreen() {
   };
 
   const remaining = queue.length;
-  const previews = useNextIntervals(current);
 
   return (
     <SafeAreaView
