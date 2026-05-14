@@ -131,7 +131,9 @@ Row-Level Security: `passages` has a public read policy (anon + authenticated). 
 
 This logic lives in `services/clitic.ts` and is unit-tested independently with a fixture of attested forms. Without this fallback, tap-to-translate silently fails on a large portion of natural reading material — imperative dialogue, infinitive constructions with object pronouns, and gerund phrases all fall through whenever the direct lookup misses.
 
-**Lookup pipeline order.** Tapped token → normalize (lowercase, NFC) → direct `inflections.surface_form` lookup → if no hit and the token matches a clitic-suffix pattern, clitic-strip and retry inflections lookup → if still no hit, lemmas table lookup → if no hit, light suffix-stripping heuristic fallback → return null. Each step is its own function in `services/dictionary.ts`.
+**Lookup pipeline order.** Tapped token → normalize (lowercase, NFC) → direct `lemmas.lemma` lookup → if no hit, `inflections.surface_form` lookup → if still no hit and the token matches a clitic-suffix pattern, clitic-strip and retry (lemma then inflection) → if still no hit, light suffix-stripping heuristic fallback → return null. Each step is its own function in `services/dictionary.ts`.
+
+Lemma-first is what disambiguates noun/verb collisions: `pueblo` is both a noun ("town") and `ind.pres.1s` of `poblar`; `nombre` is both a noun and a form of `nombrar`. Hitting `lemmas` first returns the noun (the canonical form the reader sees). Conjugated forms (`tengo`, `dámelo`) aren't lemmas, so they miss step 1 and fall through to step 2 as before.
 
 **SRS uses SM-2.** Standard, well-documented algorithm. Implementation lives in `services/srs.ts`. Do not overengineer this. (Anki's current default is FSRS; SM-2 is fine for v1 and easier to implement.)
 

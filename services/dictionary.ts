@@ -3,11 +3,16 @@
  * (content/dictionary/spanish-dictionary.db).
  *
  * Pipeline (CLAUDE.md "Lookup pipeline order"):
- *   normalize -> direct inflections.surface_form lookup
+ *   normalize -> direct lemmas.lemma lookup
+ *             -> inflections.surface_form lookup
  *             -> clitic-strip fallback (services/clitic.ts) + retry
- *             -> lemmas table lookup
  *             -> light suffix-stripping heuristic (deferred)
  *             -> null
+ *
+ * Lemma-first ordering is what disambiguates noun/verb collisions like
+ * `pueblo` (noun "town" vs. ind.pres.1s of `poblar`) and `nombre`
+ * (noun "name" vs. a form of `nombrar`). Conjugated verb forms (`tengo`,
+ * `dámelo`) miss the lemma step and fall through to inflections as usual.
  */
 
 import { Asset } from 'expo-asset';
@@ -123,7 +128,15 @@ export async function lookup(token: string): Promise<LookupResult | null> {
 
   const db = await openDb();
 
-  // 1. Direct inflection lookup.
+  // 1. Direct lemma lookup. Catches canonical nouns / adjectives without
+  //    being misled by accidental verb-conjugation collisions in inflections
+  //    (e.g. `pueblo` resolves to the noun, not the verb `poblar`).
+  const lemma = await lookupLemma(db, surface);
+  if (lemma) {
+    return { surfaceForm: surface, lemma };
+  }
+
+  // 2. Inflection lookup. Verb conjugations, plurals, gendered forms.
   const direct = await lookupInflection(db, surface);
   if (direct) {
     return {
@@ -133,19 +146,10 @@ export async function lookup(token: string): Promise<LookupResult | null> {
     };
   }
 
-  // 2. Clitic-strip fallback. Try inflection lookup on the stripped base,
-  //    then fall back to a bare lemma lookup on the same base.
+  // 3. Clitic-strip fallback. Try lemma lookup on the stripped base first,
+  //    then inflection, mirroring the top-level order.
   const decomp = stripClitics(surface);
   if (decomp) {
-    const stripped = await lookupInflection(db, decomp.base);
-    if (stripped) {
-      return {
-        surfaceForm: surface,
-        lemma: stripped.lemma,
-        grammarFeatures: stripped.grammarFeatures,
-        clitics: [...decomp.clitics],
-      };
-    }
     const strippedLemma = await lookupLemma(db, decomp.base);
     if (strippedLemma) {
       return {
@@ -154,13 +158,15 @@ export async function lookup(token: string): Promise<LookupResult | null> {
         clitics: [...decomp.clitics],
       };
     }
-  }
-
-  // 3. Lemma lookup on the surface form (catches nouns/adjectives in their
-  //    canonical form that happen not to be in inflections).
-  const lemma = await lookupLemma(db, surface);
-  if (lemma) {
-    return { surfaceForm: surface, lemma };
+    const strippedInflection = await lookupInflection(db, decomp.base);
+    if (strippedInflection) {
+      return {
+        surfaceForm: surface,
+        lemma: strippedInflection.lemma,
+        grammarFeatures: strippedInflection.grammarFeatures,
+        clitics: [...decomp.clitics],
+      };
+    }
   }
 
   // 4. Light suffix-stripping heuristic — deferred to v1.5 or beyond.
