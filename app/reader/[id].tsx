@@ -15,6 +15,7 @@ import { Colors } from '@/constants/Colors';
 import { usePassage } from '@/hooks/usePassages';
 import { useCaptureWord, useUserWords } from '@/hooks/useUserWords';
 import { lookup } from '@/services/dictionary';
+import { speak } from '@/services/speech';
 import { findSentenceAt, tokenize } from '@/services/tokenize';
 import type { LookupResult, Passage } from '@/types';
 
@@ -225,7 +226,12 @@ function PopoverContent({
 
   return (
     <ScrollView style={{ flexGrow: 0 }}>
-      <Text style={[styles.popoverTitle, { color: palette.text }]}>{lemma.lemma}</Text>
+      <View style={styles.titleRow}>
+        <Text style={[styles.popoverTitle, { color: palette.text }]}>{lemma.lemma}</Text>
+        <Pressable onPress={() => speak(lemma.lemma)} hitSlop={10}>
+          <Text style={[styles.speakBtn, { color: palette.tint }]}>🔊</Text>
+        </Pressable>
+      </View>
       <Text style={[styles.popoverMeta, { color: palette.muted }]}>{metaParts.join(' ')}</Text>
       {clitics && clitics.length > 0 && (
         <Text style={[styles.popoverClitics, { color: palette.muted }]}>
@@ -298,4 +304,6 @@ const styles = StyleSheet.create({
   deckRow: { marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
   addBtn: { borderWidth: 1.5, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
   inDeck: { fontSize: 14, fontWeight: '500' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  speakBtn: { fontSize: 20 },
 });

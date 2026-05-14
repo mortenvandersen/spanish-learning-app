@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { useDueUserWords, useReviewUserWord } from '@/hooks/useUserWords';
+import { speak } from '@/services/speech';
 import type { Rating } from '@/services/srs';
 import type { UserWord } from '@/types';
 
@@ -133,7 +134,18 @@ function CardFace({
   }
   return (
     <View style={styles.backFace}>
-      <Text style={[styles.faceText, { color: palette.text }]}>{word.spanish}</Text>
+      <View style={styles.spanishRow}>
+        <Text style={[styles.faceText, { color: palette.text }]}>{word.spanish}</Text>
+        <Pressable
+          onPress={e => {
+            e.stopPropagation();
+            speak(word.spanish);
+          }}
+          hitSlop={12}
+        >
+          <Text style={[styles.speakBtn, { color: palette.tint }]}>🔊</Text>
+        </Pressable>
+      </View>
       <Text style={[styles.faceMeta, { color: palette.muted }]}>{word.partOfSpeech}</Text>
       {word.sourceSentence && (
         <Text style={[styles.context, { color: palette.muted }]}>
@@ -180,4 +192,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ratingText: { fontSize: 14, fontWeight: '600' },
+  spanishRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  speakBtn: { fontSize: 22 },
 });
