@@ -104,9 +104,15 @@ export async function captureWord(input: CaptureWordInput): Promise<UserWord[]> 
     srs_repetitions: state.repetitions,
     direction,
   }));
+  // upsert with ignoreDuplicates: if both rows already exist (re-capture from
+  // a different reading), nothing happens; if only one direction exists, the
+  // other gets inserted; if neither exists, both are inserted. Idempotent.
   const { data, error } = await supabase
     .from('user_words')
-    .insert(rows)
+    .upsert(rows, {
+      onConflict: 'user_id,spanish,part_of_speech,direction',
+      ignoreDuplicates: true,
+    })
     .select(SELECT_COLUMNS);
   if (error) throw toError(error);
   return (data as UserWordRow[]).map(toUserWord);
