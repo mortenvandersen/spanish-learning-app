@@ -1,0 +1,33 @@
+Spanish Dictionary Pipeline — Coverage Report
+
+Build date: 2026-05-14T14:41:10Z
+Pipeline version: phase-b2
+Database: output\spanish-dictionary.db
+  Size: 69.4 MB
+  Lemmas: 107,042
+  Inflections: 966,244
+
+Spot-check results:
+  Total tests: 90
+  Passed: 90
+  Failed: 0
+  Pass rate: 100.0%
+  Avg lookup latency: 0.062 ms (warm cache, indexed surface_form JOIN)
+
+Per-category:
+  adjective_agreement: pass=5 fail=0
+  ambiguous_forms: pass=10 fail=0
+  edge_cases: pass=5 fail=0
+  gendered_pairs: pass=5 fail=0
+  irregular_verbs: pass=15 fail=0
+  negative_cases: pass=5 fail=0
+  nouns_gender: pass=10 fail=0
+  polysemy: pass=10 fail=0
+  regular_verbs: pass=10 fail=0
+  stem_changing: pass=5 fail=0
+  subjunctive: pass=10 fail=0
+
+Source data:
+  kaikki Spanish JSONL (CC-BY-SA 4.0)
+  Hermit Dave FrequencyWords (MIT, used only if frequency trim applied)
+

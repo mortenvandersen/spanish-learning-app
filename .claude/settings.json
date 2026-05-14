@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsc --version)",
+      "Bash(npx expo --version)",
+      "Bash(npx expo config)",
+      "Bash(npx expo config --json)",
+      "Bash(npx expo doctor)",
+      "Bash(npx expo whoami)",
+      "Bash(npx expo start)",
+      "Bash(npx expo start *)",
+      "Bash(npm --version)",
+      "Bash(npm list)",
+      "Bash(npm list *)",
+      "Bash(npm view *)",
+      "Bash(npm outdated)",
+      "Bash(supabase --version)",
+      "Bash(supabase status)",
+      "Bash(supabase projects list)",
+      "Bash(supabase migration list)",
+      "Bash(eas --version)",
+      "Bash(eas whoami)"
+    ]
+  }
+}

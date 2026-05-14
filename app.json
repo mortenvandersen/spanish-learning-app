@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Spanish Learning App",
+    "slug": "spanish-learning-app",
+    "scheme": "spanishapp",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.user.spanishlearningapp"
+    },
+    "android": {
+      "package": "com.user.spanishlearningapp"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-asset",
+        {
+          "assets": ["./content/dictionary/spanish-dictionary.db"]
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
