@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -32,15 +32,18 @@ export default function StudyScreen() {
   const { data: stats } = useStudyStats();
   const reviewMutation = useReviewUserWord();
 
-  const [queue, setQueue] = useState<UserWord[]>([]);
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
-  useEffect(() => {
-    if (dueWords && queue.length === 0) {
-      setQueue(dueWords);
-    }
-  }, [dueWords, queue.length]);
+  // Derive the queue from the latest server data minus what we've rated in
+  // this session. Local state was causing a stale-snapshot bug where the
+  // queue re-seeded from a pre-mutation dueWords if the user rated faster
+  // than the refetch.
+  const queue = useMemo(
+    () => (dueWords ?? []).filter(w => !reviewedIds.has(w.id)),
+    [dueWords, reviewedIds],
+  );
 
   // Must be called unconditionally — hook order has to be stable across renders.
   const previews = useNextIntervals(queue[0]);
@@ -87,7 +90,11 @@ export default function StudyScreen() {
 
   const handleRate = (rating: Rating) => {
     reviewMutation.mutate({ word: current, rating });
-    setQueue(q => q.slice(1));
+    setReviewedIds(prev => {
+      const next = new Set(prev);
+      next.add(current.id);
+      return next;
+    });
     setRevealed(false);
   };
 
