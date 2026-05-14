@@ -67,6 +67,8 @@ constants/              Colors, spacing, typography tokens
 content/
   grammar/              Markdown files for grammar topic pages
   dictionary/           Bundled SQLite dictionary (built by the separate data-pipeline project)
+supabase/
+  migrations/           Versioned SQL migrations (applied via dashboard or `supabase db push`)
 types/                  Shared TypeScript types
 ```
 
@@ -85,13 +87,14 @@ passages (
   created_at timestamptz default now()
 )
 
--- Per-user captured words with SRS state
+-- Per-device captured words with SRS state.
+-- user_id is the device-generated UUID (services/deviceId.ts), not auth.uid().
 user_words (
   id uuid primary key,
-  user_id uuid references auth.users not null,
+  user_id uuid not null,               -- device-generated, no auth.users FK in v1
   spanish text not null,               -- the lemma, not the inflected surface form
   english text not null,
-  part_of_speech text,                 -- copied from the dictionary at capture time
+  part_of_speech text not null,        -- copied from the dictionary at capture time
   source_passage_id uuid references passages,
   source_sentence text,                -- the sentence the word was captured from (context-bound review)
   added_at timestamptz default now(),
@@ -109,7 +112,9 @@ user_words (
 -- data-pipeline project; it is NOT a Supabase table.
 ```
 
-Row-Level Security: `user_words` is filtered by `auth.uid() = user_id`. `passages` is readable by all authenticated users.
+Canonical migration: `supabase/migrations/20260514120000_initial_schema.sql`.
+
+Row-Level Security: `passages` has a public read policy (anon + authenticated). `user_words` has RLS enabled but the policy is `USING (true) WITH CHECK (true)` — the v1 trust-the-client trade-off documented under "Identity model". All app queries must scope by `user_id` themselves (`services/userWords.ts`).
 
 ---
 
