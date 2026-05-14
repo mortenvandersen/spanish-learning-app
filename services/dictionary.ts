@@ -6,7 +6,7 @@
  *   normalize -> direct lemmas.lemma lookup
  *             -> inflections.surface_form lookup
  *             -> clitic-strip fallback (services/clitic.ts) + retry
- *             -> light suffix-stripping heuristic (deferred)
+ *             -> suffix-strip heuristic (services/suffix.ts) -> lemma lookup
  *             -> null
  *
  * Lemma-first ordering is what disambiguates noun/verb collisions like
@@ -19,6 +19,7 @@ import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as SQLite from 'expo-sqlite';
 import { stripClitics } from './clitic';
+import { suffixCandidates } from './suffix';
 import type { Lemma, LookupResult, Sense } from '@/types';
 
 const DB_NAME = 'spanish-dictionary.db';
@@ -169,7 +170,15 @@ export async function lookup(token: string): Promise<LookupResult | null> {
     }
   }
 
-  // 4. Light suffix-stripping heuristic — deferred to v1.5 or beyond.
+  // 4. Light suffix-stripping heuristic. Catches -mente adverbs, diminutives,
+  //    and rare plurals that aren't in the inflections table. Tries each
+  //    candidate as a bare lemma lookup; first hit wins.
+  for (const candidate of suffixCandidates(surface)) {
+    const hit = await lookupLemma(db, candidate);
+    if (hit) {
+      return { surfaceForm: surface, lemma: hit };
+    }
+  }
 
   return null;
 }
