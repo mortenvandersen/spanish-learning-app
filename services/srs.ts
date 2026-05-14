@@ -74,3 +74,14 @@ function addDays(date: Date, days: number): string {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString();
 }
+
+/**
+ * Anki-style compact label for an interval in days. Used by the study screen
+ * to preview the next interval under each rating button.
+ */
+export function formatInterval(days: number): string {
+  if (days < 1) return '<1d';
+  if (days < 31) return `${days}d`;
+  if (days < 365) return `${Math.round(days / 30)}mo`;
+  return `${Math.round(days / 365)}y`;
+}

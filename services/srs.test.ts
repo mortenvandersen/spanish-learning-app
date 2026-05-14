@@ -1,4 +1,4 @@
-import { INITIAL_EASE, MIN_EASE, initialState, nextState } from './srs';
+import { INITIAL_EASE, MIN_EASE, formatInterval, initialState, nextState } from './srs';
 
 const NOW = new Date('2026-05-14T12:00:00Z');
 
@@ -72,5 +72,29 @@ describe('SM-2', () => {
       }
       expect(s.ease).toBe(MIN_EASE);
     });
+  });
+});
+
+describe('formatInterval', () => {
+  it('formats short intervals as days', () => {
+    expect(formatInterval(1)).toBe('1d');
+    expect(formatInterval(6)).toBe('6d');
+    expect(formatInterval(30)).toBe('30d');
+  });
+
+  it('formats month-scale intervals as months', () => {
+    expect(formatInterval(31)).toBe('1mo');
+    expect(formatInterval(60)).toBe('2mo');
+    expect(formatInterval(180)).toBe('6mo');
+  });
+
+  it('formats year-scale intervals as years', () => {
+    expect(formatInterval(365)).toBe('1y');
+    expect(formatInterval(730)).toBe('2y');
+  });
+
+  it('clamps sub-day intervals to "<1d"', () => {
+    expect(formatInterval(0)).toBe('<1d');
+    expect(formatInterval(-1)).toBe('<1d');
   });
 });

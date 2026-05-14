@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,7 +12,7 @@ import { Colors } from '@/constants/Colors';
 import { useDueUserWords, useReviewUserWord } from '@/hooks/useUserWords';
 import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
-import type { Rating } from '@/services/srs';
+import { formatInterval, nextState, type Rating, type SrsState } from '@/services/srs';
 import type { UserWord } from '@/types';
 
 type Palette = (typeof Colors)['light' | 'dark'];
@@ -78,6 +78,7 @@ export default function StudyScreen() {
   };
 
   const remaining = queue.length;
+  const previews = useNextIntervals(current);
 
   return (
     <SafeAreaView
@@ -113,12 +114,36 @@ export default function StudyScreen() {
               style={[styles.ratingBtn, { borderColor: palette.border }]}
             >
               <Text style={[styles.ratingText, { color: palette.text }]}>{r.label}</Text>
+              <Text style={[styles.ratingInterval, { color: palette.muted }]}>
+                {previews[r.value]}
+              </Text>
             </Pressable>
           ))}
         </View>
       )}
     </SafeAreaView>
   );
+}
+
+function useNextIntervals(word: UserWord | undefined): Record<Rating, string> {
+  return useMemo(() => {
+    if (!word) {
+      return { again: '', hard: '', good: '', easy: '' };
+    }
+    const state: SrsState = {
+      interval: word.srsInterval,
+      ease: word.srsEase,
+      repetitions: word.srsRepetitions,
+      due: word.srsDue,
+    };
+    const now = new Date();
+    return {
+      again: formatInterval(nextState(state, 'again', now).interval),
+      hard: formatInterval(nextState(state, 'hard', now).interval),
+      good: formatInterval(nextState(state, 'good', now).interval),
+      easy: formatInterval(nextState(state, 'easy', now).interval),
+    };
+  }, [word]);
 }
 
 function CardFace({
@@ -193,6 +218,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ratingText: { fontSize: 14, fontWeight: '600' },
+  ratingInterval: { fontSize: 11, marginTop: 4 },
   spanishRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   speakBtn: { fontSize: 22 },
 });
