@@ -8,6 +8,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AddWordModal } from '@/components/AddWordModal';
 import { Colors } from '@/constants/Colors';
 import { useDueUserWords, useReviewUserWord, useStudyStats } from '@/hooks/useUserWords';
 import { describeError } from '@/services/errors';
@@ -33,6 +34,7 @@ export default function StudyScreen() {
 
   const [queue, setQueue] = useState<UserWord[]>([]);
   const [revealed, setRevealed] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     if (dueWords && queue.length === 0) {
@@ -70,6 +72,7 @@ export default function StudyScreen() {
         edges={['left', 'right', 'bottom']}
         style={[styles.root, { backgroundColor: palette.background }]}
       >
+        <TopBar palette={palette} onAdd={() => setAddOpen(true)} />
         {stats && <Dashboard stats={stats} palette={palette} />}
         <View style={styles.center}>
           <Text style={[styles.empty, { color: palette.text }]}>All caught up.</Text>
@@ -77,6 +80,7 @@ export default function StudyScreen() {
             Capture words from the Read tab to build your deck.
           </Text>
         </View>
+        <AddWordModal visible={addOpen} onClose={() => setAddOpen(false)} />
       </SafeAreaView>
     );
   }
@@ -94,6 +98,8 @@ export default function StudyScreen() {
       edges={['left', 'right', 'bottom']}
       style={[styles.root, { backgroundColor: palette.background }]}
     >
+      <TopBar palette={palette} onAdd={() => setAddOpen(true)} />
+
       {stats && <Dashboard stats={stats} palette={palette} />}
 
       <View style={styles.header}>
@@ -132,7 +138,18 @@ export default function StudyScreen() {
           ))}
         </View>
       )}
+      <AddWordModal visible={addOpen} onClose={() => setAddOpen(false)} />
     </SafeAreaView>
+  );
+}
+
+function TopBar({ palette, onAdd }: { palette: Palette; onAdd: () => void }) {
+  return (
+    <View style={styles.topBar}>
+      <Pressable onPress={onAdd} hitSlop={12}>
+        <Text style={[styles.topBarAdd, { color: palette.tint }]}>+ Add word</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -321,6 +338,8 @@ const styles = StyleSheet.create({
   forecastCell: { flex: 1, alignItems: 'center' },
   forecastDay: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 },
   forecastCount: { fontSize: 14, fontWeight: '500', marginTop: 2 },
+  topBar: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
+  topBarAdd: { fontSize: 15, fontWeight: '600' },
   spanishRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   speakBtn: { fontSize: 22 },
 });
