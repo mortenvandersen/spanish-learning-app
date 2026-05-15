@@ -42,19 +42,21 @@ export default function ReadScreen() {
   const palette = Colors[scheme];
   const router = useRouter();
   const { data, isLoading, error } = usePassages();
-  const { data: readIds } = useReadPassageIds();
+  const { data: readIdsList } = useReadPassageIds();
   const markRead = useMarkRead();
   const markUnread = useMarkUnread();
+
+  const readIds = useMemo(() => new Set(readIdsList ?? []), [readIdsList]);
+  const lastMutationError: unknown = markRead.error ?? markUnread.error;
 
   const [filter, setFilter] = useState<FilterMode>('unread');
   const [sort, setSort] = useState<SortMode>('order');
 
   const visiblePassages = useMemo(() => {
     if (!data) return [];
-    const reads = readIds ?? new Set<string>();
     const filtered = data.filter(p => {
       if (filter === 'all') return true;
-      const isRead = reads.has(p.id);
+      const isRead = readIds.has(p.id);
       return filter === 'read' ? isRead : !isRead;
     });
     return [...filtered].sort((a, b) => {
@@ -109,6 +111,11 @@ export default function ReadScreen() {
           onChange={setSort}
           palette={palette}
         />
+        {lastMutationError ? (
+          <Text style={[styles.errorDetail, { color: palette.muted }]}>
+            {describeError(lastMutationError)}
+          </Text>
+        ) : null}
       </View>
 
       {visiblePassages.length === 0 ? (
@@ -130,11 +137,11 @@ export default function ReadScreen() {
           renderItem={({ item }) => (
             <PassageRow
               passage={item}
-              isRead={readIds?.has(item.id) ?? false}
+              isRead={readIds.has(item.id)}
               palette={palette}
               onOpen={() => router.push(`/reader/${item.id}`)}
               onToggle={() => {
-                if (readIds?.has(item.id)) {
+                if (readIds.has(item.id)) {
                   markUnread.mutate(item.id);
                 } else {
                   markRead.mutate(item.id);
