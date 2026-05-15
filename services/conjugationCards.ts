@@ -78,12 +78,15 @@ export async function listDueConjugationCards(
 ): Promise<ConjugationCardWithState[]> {
   const supabase = await getSupabase();
   const userId = await getDeviceId();
+  // Match the dashboard's "due today" convention — anything scheduled
+  // before tomorrow's local midnight is fair game now.
+  const cutoff = endOfLocalDay(now);
   const { data, error } = await supabase
     .from('conjugation_card_states')
     .select(JOINED_SELECT)
     .eq('user_id', userId)
     .is('suspended_at', null)
-    .lte('srs_due', now.toISOString())
+    .lte('srs_due', cutoff.toISOString())
     .order('srs_due', { ascending: true });
   if (error) throw toError(error);
   return (data as unknown as JoinedRow[]).map(r => ({
@@ -151,6 +154,12 @@ export async function releaseConjugationCards(count: number): Promise<number> {
 function startOfLocalDay(d: Date): Date {
   const r = new Date(d);
   r.setHours(0, 0, 0, 0);
+  return r;
+}
+
+function endOfLocalDay(d: Date): Date {
+  const r = startOfLocalDay(d);
+  r.setDate(r.getDate() + 1);
   return r;
 }
 

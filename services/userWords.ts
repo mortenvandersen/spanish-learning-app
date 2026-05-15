@@ -79,12 +79,17 @@ export async function listUserWords(): Promise<UserWord[]> {
 export async function listDueUserWords(now: Date = new Date()): Promise<UserWord[]> {
   const supabase = await getSupabase();
   const userId = await getDeviceId();
+  // "Due" = anything scheduled before tomorrow's local midnight. Keeps the
+  // queue in sync with the dashboard "Due now" count, which buckets by
+  // local day, and matches the Anki-style "today's cards are fair game any
+  // time today" convention.
+  const cutoff = endOfLocalDay(now);
   const { data, error } = await supabase
     .from('user_words')
     .select(SELECT_COLUMNS)
     .eq('user_id', userId)
     .is('suspended_at', null)
-    .lte('srs_due', now.toISOString())
+    .lte('srs_due', cutoff.toISOString())
     .order('srs_due', { ascending: true });
   if (error) throw toError(error);
   return (data as UserWordRow[]).map(toUserWord);
@@ -206,6 +211,12 @@ export async function suspendUserWord(word: UserWord): Promise<UserWord> {
 function startOfLocalDay(d: Date): Date {
   const r = new Date(d);
   r.setHours(0, 0, 0, 0);
+  return r;
+}
+
+function endOfLocalDay(d: Date): Date {
+  const r = startOfLocalDay(d);
+  r.setDate(r.getDate() + 1);
   return r;
 }
 
