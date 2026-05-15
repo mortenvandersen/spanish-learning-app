@@ -32,12 +32,13 @@ import zipfile
 from typing import Iterable
 
 # Meta tags that are never the verb. Anki tags are space-separated; the verb
-# is the one short, simple, non-meta token in the list.
+# is the only simple, non-meta token left after filtering.
 META_TAGS = {
     'orientation',
     # tenses and moods
-    'presente', 'imperfecto', 'preterito', 'pretérito', 'futuro',
-    'condicional', 'subjuntivo', 'imperativo', 'perfecto',
+    'presente', 'imperfecto', 'indefinido',
+    'preterito', 'pretérito',
+    'futuro', 'condicional', 'subjuntivo', 'imperativo', 'perfecto',
     'pluscuamperfecto', 'antepreterito', 'anteperfecto', 'antefuturo',
     'pluscuampérfecto', 'antepretérito',
     # non-finite
@@ -45,7 +46,12 @@ META_TAGS = {
     # persons
     'yo', 'tu', 'tú', 'el', 'él', 'ella', 'ello', 'usted',
     'nosotros', 'nosotras', 'vosotros', 'vosotras', 'ellos', 'ellas', 'ustedes',
-    # regularity / shape markers (no underscore in some)
+    # voseo (filtered out anyway, but listed for safety)
+    'vos',
+    # card-category markers that aren't verbs
+    'modismo',   # "idiom"
+    'refrán',    # "proverb"
+    'pronominal', # the verb is reflexive, not the tag itself being a verb
 }
 
 HTML_BR = re.compile(r'<br\s*/?>', re.IGNORECASE)
