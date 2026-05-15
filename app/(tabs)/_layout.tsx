@@ -49,6 +49,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="concepts"
+        options={{
+          title: 'Concepts',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'bulb' : 'bulb-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="grammar"
         options={{
           title: 'Grammar',

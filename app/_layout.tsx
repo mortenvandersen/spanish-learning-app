@@ -50,6 +50,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="reader/[id]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="concept/[id]" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="grammar/[slug]" options={{ headerShown: true, title: '' }} />
         </Stack>
         <StatusBar style="auto" />

@@ -29,6 +29,16 @@ export interface Passage {
   createdAt: string;
 }
 
+export interface Concept {
+  id: string;
+  title: string;
+  summary: string;
+  body: string;
+  sourceUrl: string | null;
+  sourceEpisode: string | null;
+  createdAt: string;
+}
+
 export type CardDirection = 'en_to_es' | 'es_to_en';
 
 export interface UserWord {
