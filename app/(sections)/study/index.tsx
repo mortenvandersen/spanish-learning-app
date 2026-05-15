@@ -24,7 +24,7 @@ export default function StudyScreen() {
 
   return (
     <SafeAreaView
-      edges={['left', 'right', 'bottom']}
+      edges={['left', 'right']}
       style={[styles.root, { backgroundColor: theme.color.bg }]}
     >
       <Text

@@ -15,20 +15,17 @@ import {
   SourceSerif4_400Regular,
 } from '@expo-google-fonts/source-serif-4';
 import { prewarm } from '@/services/dictionary';
+import { useTheme } from '@/theme/useTheme';
 
 const queryClient = new QueryClient();
 
-// Hide the splash as soon as the JS bundle is mounted. The fonts load in
-// the background; once they arrive, useFonts triggers a re-render and the
-// custom typography swaps in. If we gate the whole tree on font readiness
-// and either hook errors silently, the user is stuck on a blank screen —
-// not worth that risk for a 200ms FOUT on first launch.
+// Hide splash on JS load — fonts swap in once loaded; see step-1 commit
+// message for the reasoning.
 SplashScreen.hideAsync().catch(() => {});
 
 export default function RootLayout() {
-  // Calling the hooks is enough — their internal state change triggers a
-  // re-render once each font file lands, and the React Native text engine
-  // picks up the newly-available fontFamily on the next paint.
+  const theme = useTheme();
+
   useInterFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -47,11 +44,28 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="reader/[id]" options={{ headerShown: true, title: '' }} />
-          <Stack.Screen name="concept/[id]" options={{ headerShown: true, title: '' }} />
-          <Stack.Screen name="grammar/[slug]" options={{ headerShown: true, title: '' }} />
+        <Stack
+          screenOptions={{
+            headerShown: true,
+            headerStyle: { backgroundColor: theme.color.bg },
+            headerTitleStyle: {
+              fontFamily: theme.fontFamily.sansSemibold,
+              fontSize: 17,
+              color: theme.color.text,
+            },
+            headerTintColor: theme.color.text,
+            headerShadowVisible: false,
+            contentStyle: { backgroundColor: theme.color.bg },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(sections)/read/index" options={{ title: 'Read' }} />
+          <Stack.Screen name="(sections)/study/index" options={{ title: 'Study' }} />
+          <Stack.Screen name="(sections)/concepts/index" options={{ title: 'Concepts' }} />
+          <Stack.Screen name="(sections)/grammar/index" options={{ title: 'Grammar' }} />
+          <Stack.Screen name="reader/[id]" options={{ title: '' }} />
+          <Stack.Screen name="concept/[id]" options={{ title: '' }} />
+          <Stack.Screen name="grammar/[slug]" options={{ title: '' }} />
         </Stack>
         <StatusBar style="auto" />
       </QueryClientProvider>
