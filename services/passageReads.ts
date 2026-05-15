@@ -18,11 +18,11 @@ export async function markPassageRead(passageId: string): Promise<void> {
   const userId = await getDeviceId();
   const { error } = await supabase
     .from('passage_reads')
-    .upsert(
-      { user_id: userId, passage_id: passageId },
-      { onConflict: 'user_id,passage_id', ignoreDuplicates: true },
-    );
-  if (error) throw toError(error);
+    .insert({ user_id: userId, passage_id: passageId });
+  // 23505 = unique_violation. Already marked — silently succeed.
+  if (error && (error as { code?: string }).code !== '23505') {
+    throw toError(error);
+  }
 }
 
 export async function markPassageUnread(passageId: string): Promise<void> {
