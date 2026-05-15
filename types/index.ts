@@ -53,3 +53,35 @@ export interface StudyStats {
   dueNow: number;          // overdue + due today
   next7Days: number[];     // length 7, next7Days[0] = tomorrow, [6] = 7 days out
 }
+
+export interface ConjugationCard {
+  id: string;
+  sequence: number;
+  prompt: string;       // raw template with {{cN::answer::hint}} markup
+  notes: string | null;
+  tags: string[];
+  verb: string | null;
+}
+
+export interface ConjugationCardState {
+  id: string;
+  userId: string;
+  conjugationCardId: string;
+  releasedAt: string;
+  srsDue: string;
+  srsInterval: number;
+  srsEase: number;
+  srsRepetitions: number;
+  lastReviewedAt: string | null;
+}
+
+/** A card joined with its per-user state. The shape used by the Study tab. */
+export interface ConjugationCardWithState {
+  card: ConjugationCard;
+  state: ConjugationCardState;
+}
+
+export interface ConjugationStats extends StudyStats {
+  released: number;        // count of state rows for this user
+  total: number;           // count of conjugation_cards in the deck
+}
