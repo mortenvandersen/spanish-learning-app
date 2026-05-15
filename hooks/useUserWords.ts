@@ -5,6 +5,7 @@ import {
   listDueUserWords,
   listUserWords,
   reviewUserWord,
+  suspendUserWord,
   type CaptureWordInput,
 } from '@/services/userWords';
 import type { Rating } from '@/services/srs';
@@ -50,6 +51,16 @@ export function useReviewUserWord() {
   return useMutation({
     mutationFn: ({ word, rating }: { word: UserWord; rating: Rating }) =>
       reviewUserWord(word, rating),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['userWords'] });
+    },
+  });
+}
+
+export function useSuspendUserWord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (word: UserWord) => suspendUserWord(word),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['userWords'] });
     },

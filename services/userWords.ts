@@ -28,10 +28,11 @@ interface UserWordRow {
   srs_repetitions: number;
   direction: CardDirection;
   last_reviewed_at: string | null;
+  suspended_at: string | null;
 }
 
 const SELECT_COLUMNS =
-  'id, user_id, spanish, english, part_of_speech, source_passage_id, source_sentence, added_at, srs_due, srs_interval, srs_ease, srs_repetitions, direction, last_reviewed_at';
+  'id, user_id, spanish, english, part_of_speech, source_passage_id, source_sentence, added_at, srs_due, srs_interval, srs_ease, srs_repetitions, direction, last_reviewed_at, suspended_at';
 
 function toUserWord(row: UserWordRow): UserWord {
   return {
@@ -49,6 +50,7 @@ function toUserWord(row: UserWordRow): UserWord {
     srsRepetitions: row.srs_repetitions,
     direction: row.direction,
     lastReviewedAt: row.last_reviewed_at,
+    suspendedAt: row.suspended_at,
   };
 }
 
@@ -79,6 +81,7 @@ export async function listDueUserWords(now: Date = new Date()): Promise<UserWord
     .from('user_words')
     .select(SELECT_COLUMNS)
     .eq('user_id', userId)
+    .is('suspended_at', null)
     .lte('srs_due', now.toISOString())
     .order('srs_due', { ascending: true });
   if (error) throw toError(error);
@@ -147,6 +150,19 @@ export async function reviewUserWord(
   return toUserWord(data as UserWordRow);
 }
 
+/** Permanently remove a word from the study queue. Reversible only via SQL. */
+export async function suspendUserWord(word: UserWord): Promise<UserWord> {
+  const supabase = await getSupabase();
+  const { data, error } = await supabase
+    .from('user_words')
+    .update({ suspended_at: new Date().toISOString() })
+    .eq('id', word.id)
+    .select(SELECT_COLUMNS)
+    .single();
+  if (error) throw toError(error);
+  return toUserWord(data as UserWordRow);
+}
+
 function startOfLocalDay(d: Date): Date {
   const r = new Date(d);
   r.setHours(0, 0, 0, 0);
@@ -159,7 +175,8 @@ export async function getStudyStats(now: Date = new Date()): Promise<StudyStats>
   const { data, error } = await supabase
     .from('user_words')
     .select('srs_due, last_reviewed_at')
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .is('suspended_at', null);
   if (error) throw toError(error);
 
   const todayStart = startOfLocalDay(now);

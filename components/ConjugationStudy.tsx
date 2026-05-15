@@ -14,6 +14,7 @@ import {
   useDueConjugationCards,
   useReleaseConjugationCards,
   useReviewConjugationCard,
+  useSuspendConjugationCard,
 } from '@/hooks/useConjugationCards';
 import { renderCloze } from '@/services/cloze';
 import { describeError } from '@/services/errors';
@@ -34,6 +35,7 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
   const { data: stats } = useConjugationStats();
   const reviewMutation = useReviewConjugationCard();
   const releaseMutation = useReleaseConjugationCards();
+  const suspendMutation = useSuspendConjugationCard();
 
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState(false);
@@ -183,12 +185,37 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
                   </Text>
                 </Pressable>
               ))}
+              {isFirstShow(current.state) && (
+                <Pressable
+                  onPress={() => {
+                    suspendMutation.mutate(current.state);
+                    setReviewedIds(prev => {
+                      const next = new Set(prev);
+                      next.add(current.state.id);
+                      return next;
+                    });
+                    setRevealed(false);
+                  }}
+                  style={[styles.ratingBtn, styles.removeBtn, { borderColor: palette.border }]}
+                >
+                  <Text style={[styles.ratingText, { color: palette.muted }]}>
+                    Remove
+                  </Text>
+                  <Text style={[styles.ratingInterval, { color: palette.muted }]}>
+                    first-time only
+                  </Text>
+                </Pressable>
+              )}
             </View>
           )}
         </>
       )}
     </View>
   );
+}
+
+function isFirstShow(state: ConjugationCardState): boolean {
+  return state.srsRepetitions === 0 && state.lastReviewedAt === null;
 }
 
 function useNextIntervals(state: ConjugationCardState | undefined): Record<Rating, string> {
@@ -309,4 +336,5 @@ const styles = StyleSheet.create({
   },
   ratingText: { fontSize: 14, fontWeight: '600' },
   ratingInterval: { fontSize: 11, marginTop: 4 },
+  removeBtn: { opacity: 0.7 },
 });

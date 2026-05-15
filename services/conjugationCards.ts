@@ -35,6 +35,7 @@ interface StateRow {
   srs_ease: number;
   srs_repetitions: number;
   last_reviewed_at: string | null;
+  suspended_at: string | null;
 }
 
 interface JoinedRow extends StateRow {
@@ -43,7 +44,7 @@ interface JoinedRow extends StateRow {
 
 const CARD_SELECT = 'id, sequence, prompt, notes, tags, verb';
 const STATE_SELECT =
-  'id, user_id, conjugation_card_id, released_at, srs_due, srs_interval, srs_ease, srs_repetitions, last_reviewed_at';
+  'id, user_id, conjugation_card_id, released_at, srs_due, srs_interval, srs_ease, srs_repetitions, last_reviewed_at, suspended_at';
 const JOINED_SELECT = `${STATE_SELECT}, conjugation_cards!inner(${CARD_SELECT})`;
 
 function toCard(row: CardRow): ConjugationCard {
@@ -68,6 +69,7 @@ function toState(row: StateRow): ConjugationCardState {
     srsEase: row.srs_ease,
     srsRepetitions: row.srs_repetitions,
     lastReviewedAt: row.last_reviewed_at,
+    suspendedAt: row.suspended_at,
   };
 }
 
@@ -80,6 +82,7 @@ export async function listDueConjugationCards(
     .from('conjugation_card_states')
     .select(JOINED_SELECT)
     .eq('user_id', userId)
+    .is('suspended_at', null)
     .lte('srs_due', now.toISOString())
     .order('srs_due', { ascending: true });
   if (error) throw toError(error);
@@ -118,6 +121,21 @@ export async function reviewConjugationCard(
   return toState(data as StateRow);
 }
 
+/** Permanently remove a card from the study queue. */
+export async function suspendConjugationCard(
+  state: ConjugationCardState,
+): Promise<ConjugationCardState> {
+  const supabase = await getSupabase();
+  const { data, error } = await supabase
+    .from('conjugation_card_states')
+    .update({ suspended_at: new Date().toISOString() })
+    .eq('id', state.id)
+    .select(STATE_SELECT)
+    .single();
+  if (error) throw toError(error);
+  return toState(data as StateRow);
+}
+
 /** Release the next N unreleased cards. Returns the number actually released. */
 export async function releaseConjugationCards(count: number): Promise<number> {
   const supabase = await getSupabase();
@@ -146,7 +164,8 @@ export async function getConjugationStats(
     supabase
       .from('conjugation_card_states')
       .select('srs_due, last_reviewed_at')
-      .eq('user_id', userId),
+      .eq('user_id', userId)
+      .is('suspended_at', null),
     supabase
       .from('conjugation_cards')
       .select('*', { count: 'exact', head: true }),

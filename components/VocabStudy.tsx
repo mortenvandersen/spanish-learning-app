@@ -7,6 +7,7 @@ import {
   useDueUserWords,
   useReviewUserWord,
   useStudyStats,
+  useSuspendUserWord,
 } from '@/hooks/useUserWords';
 import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
@@ -26,6 +27,7 @@ export function VocabStudy({ palette }: { palette: Palette }) {
   const { data: dueWords, isLoading, error } = useDueUserWords();
   const { data: stats } = useStudyStats();
   const reviewMutation = useReviewUserWord();
+  const suspendMutation = useSuspendUserWord();
 
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState(false);
@@ -118,6 +120,27 @@ export function VocabStudy({ palette }: { palette: Palette }) {
                   </Text>
                 </Pressable>
               ))}
+              {isFirstShow(current) && (
+                <Pressable
+                  onPress={() => {
+                    suspendMutation.mutate(current);
+                    setReviewedIds(prev => {
+                      const next = new Set(prev);
+                      next.add(current.id);
+                      return next;
+                    });
+                    setRevealed(false);
+                  }}
+                  style={[styles.ratingBtn, styles.removeBtn, { borderColor: palette.border }]}
+                >
+                  <Text style={[styles.ratingText, { color: palette.muted }]}>
+                    Remove
+                  </Text>
+                  <Text style={[styles.ratingInterval, { color: palette.muted }]}>
+                    first-time only
+                  </Text>
+                </Pressable>
+              )}
             </View>
           )}
         </>
@@ -126,6 +149,10 @@ export function VocabStudy({ palette }: { palette: Palette }) {
       <AddWordModal visible={addOpen} onClose={() => setAddOpen(false)} />
     </View>
   );
+}
+
+function isFirstShow(word: UserWord): boolean {
+  return word.srsRepetitions === 0 && word.lastReviewedAt === null;
 }
 
 function useNextIntervals(word: UserWord | undefined): Record<Rating, string> {
@@ -246,6 +273,7 @@ const styles = StyleSheet.create({
   },
   ratingText: { fontSize: 14, fontWeight: '600' },
   ratingInterval: { fontSize: 11, marginTop: 4 },
+  removeBtn: { opacity: 0.7 },
   spanishRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   speakBtn: { fontSize: 22 },
 });

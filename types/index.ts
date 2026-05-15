@@ -46,6 +46,7 @@ export interface UserWord {
   srsRepetitions: number;
   direction: CardDirection;
   lastReviewedAt: string | null;
+  suspendedAt: string | null;
 }
 
 export interface StudyStats {
@@ -73,6 +74,7 @@ export interface ConjugationCardState {
   srsEase: number;
   srsRepetitions: number;
   lastReviewedAt: string | null;
+  suspendedAt: string | null;
 }
 
 /** A card joined with its per-user state. The shape used by the Study tab. */

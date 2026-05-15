@@ -4,6 +4,7 @@ import {
   listDueConjugationCards,
   releaseConjugationCards,
   reviewConjugationCard,
+  suspendConjugationCard,
 } from '@/services/conjugationCards';
 import type { Rating } from '@/services/srs';
 import type { ConjugationCardState } from '@/types';
@@ -39,6 +40,14 @@ export function useReleaseConjugationCards() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (count: number) => releaseConjugationCards(count),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ROOT }),
+  });
+}
+
+export function useSuspendConjugationCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (state: ConjugationCardState) => suspendConjugationCard(state),
     onSuccess: () => qc.invalidateQueries({ queryKey: ROOT }),
   });
 }
