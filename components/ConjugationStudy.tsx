@@ -237,44 +237,35 @@ export function ConjugationStudy() {
                   </Text>
                 </Pressable>
               ))}
-              {isFirstShow(current.state) && (
-                <Pressable
-                  onPress={() => {
-                    suspendMutation.mutate(current.state);
-                    setReviewedIds(prev => {
-                      const next = new Set(prev);
-                      next.add(current.state.id);
-                      return next;
-                    });
-                    setRevealed(false);
-                  }}
-                  style={[
-                    styles.ratingBtn,
-                    {
-                      backgroundColor: theme.color.surface,
-                      borderRadius: theme.radius.md,
-                      opacity: 0.6,
-                    },
-                  ]}
-                >
-                  <Text style={[theme.text.bodyEm, { color: theme.color.textMuted }]}>
-                    Remove
-                  </Text>
-                  <Text style={[theme.text.tiny, { color: theme.color.textDim, marginTop: 2 }]}>
-                    first-time
-                  </Text>
-                </Pressable>
-              )}
+              <Pressable
+                onPress={() => {
+                  suspendMutation.mutate(current.state);
+                  setReviewedIds(prev => {
+                    const next = new Set(prev);
+                    next.add(current.state.id);
+                    return next;
+                  });
+                  setRevealed(false);
+                }}
+                style={[
+                  styles.ratingBtn,
+                  {
+                    backgroundColor: theme.color.surface,
+                    borderRadius: theme.radius.md,
+                    opacity: 0.6,
+                  },
+                ]}
+              >
+                <Text style={[theme.text.bodyEm, { color: theme.color.textMuted }]}>
+                  Remove
+                </Text>
+              </Pressable>
             </View>
           )}
         </>
       )}
     </View>
   );
-}
-
-function isFirstShow(state: ConjugationCardState): boolean {
-  return state.srsRepetitions === 0 && state.lastReviewedAt === null;
 }
 
 function useNextIntervals(state: ConjugationCardState | undefined): Record<Rating, string> {

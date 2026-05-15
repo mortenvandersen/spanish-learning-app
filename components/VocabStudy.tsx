@@ -162,34 +162,29 @@ export function VocabStudy() {
                   </Text>
                 </Pressable>
               ))}
-              {isFirstShow(current) && (
-                <Pressable
-                  onPress={() => {
-                    suspendMutation.mutate(current);
-                    setReviewedIds(prev => {
-                      const next = new Set(prev);
-                      next.add(current.id);
-                      return next;
-                    });
-                    setRevealed(false);
-                  }}
-                  style={[
-                    styles.ratingBtn,
-                    {
-                      backgroundColor: theme.color.surface,
-                      borderRadius: theme.radius.md,
-                      opacity: 0.6,
-                    },
-                  ]}
-                >
-                  <Text style={[theme.text.bodyEm, { color: theme.color.textMuted }]}>
-                    Remove
-                  </Text>
-                  <Text style={[theme.text.tiny, { color: theme.color.textDim, marginTop: 2 }]}>
-                    first-time
-                  </Text>
-                </Pressable>
-              )}
+              <Pressable
+                onPress={() => {
+                  suspendMutation.mutate(current);
+                  setReviewedIds(prev => {
+                    const next = new Set(prev);
+                    next.add(current.id);
+                    return next;
+                  });
+                  setRevealed(false);
+                }}
+                style={[
+                  styles.ratingBtn,
+                  {
+                    backgroundColor: theme.color.surface,
+                    borderRadius: theme.radius.md,
+                    opacity: 0.6,
+                  },
+                ]}
+              >
+                <Text style={[theme.text.bodyEm, { color: theme.color.textMuted }]}>
+                  Remove
+                </Text>
+              </Pressable>
             </View>
           )}
         </>
@@ -198,10 +193,6 @@ export function VocabStudy() {
       <AddWordModal visible={addOpen} onClose={() => setAddOpen(false)} />
     </View>
   );
-}
-
-function isFirstShow(word: UserWord): boolean {
-  return word.srsRepetitions === 0 && word.lastReviewedAt === null;
 }
 
 function useNextIntervals(word: UserWord | undefined): Record<Rating, string> {
