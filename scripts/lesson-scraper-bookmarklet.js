@@ -116,6 +116,22 @@
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
+  // Most lesson pages start with a TOC / nav block that survives selector
+  // filtering. The real lesson heading is the first H1 we emitted; drop
+  // everything before it.
+  const firstH1 = body.search(/^# /m);
+  if (firstH1 > 0) {
+    body = body.slice(firstH1);
+  }
+
+  // Strip known footer chrome from studyspanish.com-style pages.
+  body = body
+    .replace(/^\s*-\s*\[(?:Print|Email)[^\]]*\]\([^)]*\)\s*$/gm, '')
+    .replace(/^\s*Powered By[^\n]*$/gm, '')
+    .replace(/^\s*-\s*$/gm, '') // orphan list bullets
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
   const frontmatter =
     '---\n' +
     'title: ' + JSON.stringify(title) + '\n' +
@@ -123,7 +139,9 @@
     'fetched_at: ' + new Date().toISOString() + '\n' +
     '---\n\n';
 
-  const out = frontmatter + '# ' + title + '\n\n' + body + '\n';
+  // body already starts with an H1 after the trim above, so no need to
+  // prepend another title.
+  const out = frontmatter + body + '\n';
 
   const blob = new Blob([out], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
