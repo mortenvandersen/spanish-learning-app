@@ -8,19 +8,16 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/Colors';
 import { usePassage } from '@/hooks/usePassages';
 import { useCaptureWord, useUserWords } from '@/hooks/useUserWords';
 import { lookup } from '@/services/dictionary';
 import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
 import { findSentenceAt, tokenize } from '@/services/tokenize';
+import { useTheme, type Theme } from '@/theme/useTheme';
 import type { LookupResult, Passage } from '@/types';
-
-type Palette = (typeof Colors)['light' | 'dark'];
 
 interface PopoverState {
   surface: string;
@@ -43,8 +40,7 @@ function englishFromLemma(result: LookupResult): string {
 
 export default function ReaderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const theme = useTheme();
   const { data: passage, isLoading, error } = usePassage(id);
   const { data: userWords } = useUserWords();
   const captureMutation = useCaptureWord();
@@ -85,18 +81,20 @@ export default function ReaderScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: palette.background }]}>
-        <ActivityIndicator />
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+        <ActivityIndicator color={theme.color.accent} />
       </View>
     );
   }
 
   if (error || !passage) {
     return (
-      <View style={[styles.center, { backgroundColor: palette.background }]}>
-        <Text style={{ color: palette.text }}>Failed to load passage.</Text>
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+        <Text style={[theme.text.body, { color: theme.color.text }]}>
+          Failed to load passage.
+        </Text>
         {error && (
-          <Text style={[styles.errorDetail, { color: palette.muted }]}>
+          <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: theme.space.xs }]}>
             {describeError(error)}
           </Text>
         )}
@@ -109,11 +107,13 @@ export default function ReaderScreen() {
   return (
     <SafeAreaView
       edges={['left', 'right']}
-      style={[styles.root, { backgroundColor: palette.background }]}
+      style={[styles.root, { backgroundColor: theme.color.bg }]}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[styles.title, { color: palette.text }]}>{passage.title}</Text>
-        <Text style={[styles.body, { color: palette.text }]}>
+        <Text style={[theme.text.heading, { color: theme.color.text, marginBottom: theme.space.lg }]}>
+          {passage.title}
+        </Text>
+        <Text style={[theme.text.reader, { color: theme.color.text }]}>
           {tokens.map((tok, i) => {
             if (tok.kind === 'delim') return <Text key={i}>{tok.text}</Text>;
             return (
@@ -126,7 +126,7 @@ export default function ReaderScreen() {
                   const sentence = findSentenceAt(passage.body, offset);
                   handleWordPress(tok.text, sentence);
                 }}
-                style={styles.word}
+                style={[styles.word, { textDecorationColor: theme.color.textDim }]}
               >
                 {tok.text}
               </Text>
@@ -141,11 +141,18 @@ export default function ReaderScreen() {
         animationType="slide"
         onRequestClose={() => setPopover(null)}
       >
-        <Pressable style={styles.backdrop} onPress={() => setPopover(null)}>
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: theme.color.backdrop }]}
+          onPress={() => setPopover(null)}
+        >
           <Pressable
             style={[
               styles.popover,
-              { backgroundColor: palette.background, borderTopColor: palette.border },
+              {
+                backgroundColor: theme.color.surfaceElevated,
+                borderTopLeftRadius: theme.radius.xl,
+                borderTopRightRadius: theme.radius.xl,
+              },
             ]}
             onPress={() => {
               /* absorb tap so the backdrop doesn't dismiss */
@@ -154,7 +161,7 @@ export default function ReaderScreen() {
             {popover && (
               <PopoverContent
                 state={popover}
-                palette={palette}
+                theme={theme}
                 passage={passage}
                 capturedKeys={capturedKeys}
                 onAddToDeck={handleAddToDeck}
@@ -173,7 +180,7 @@ export default function ReaderScreen() {
 
 interface PopoverContentProps {
   state: PopoverState;
-  palette: Palette;
+  theme: Theme;
   passage: Passage;
   capturedKeys: Set<string>;
   onAddToDeck: () => void;
@@ -183,7 +190,7 @@ interface PopoverContentProps {
 
 function PopoverContent({
   state,
-  palette,
+  theme,
   capturedKeys,
   onAddToDeck,
   captureLoading,
@@ -192,7 +199,7 @@ function PopoverContent({
   if (state.loading) {
     return (
       <View style={styles.popoverLoading}>
-        <ActivityIndicator />
+        <ActivityIndicator color={theme.color.accent} />
       </View>
     );
   }
@@ -200,8 +207,12 @@ function PopoverContent({
   if (state.error) {
     return (
       <View>
-        <Text style={[styles.popoverTitle, { color: palette.text }]}>{state.surface}</Text>
-        <Text style={[styles.errorDetail, { color: palette.muted }]}>{state.error}</Text>
+        <Text style={[theme.text.heading, { color: theme.color.text }]}>
+          {state.surface}
+        </Text>
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: theme.space.xs }]}>
+          {state.error}
+        </Text>
       </View>
     );
   }
@@ -209,8 +220,10 @@ function PopoverContent({
   if (!state.result) {
     return (
       <View>
-        <Text style={[styles.popoverTitle, { color: palette.text }]}>{state.surface}</Text>
-        <Text style={[styles.popoverMeta, { color: palette.muted }]}>
+        <Text style={[theme.text.heading, { color: theme.color.text }]}>
+          {state.surface}
+        </Text>
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: theme.space.xs }]}>
           No translation found.
         </Text>
       </View>
@@ -221,52 +234,87 @@ function PopoverContent({
   const isCaptured = capturedKeys.has(capturedKey(lemma.lemma, lemma.partOfSpeech));
   const metaParts: string[] = [lemma.partOfSpeech];
   if (lemma.gender) metaParts.push(`(${lemma.gender})`);
-  if (grammarFeatures && grammarFeatures !== 'unknown') metaParts.push(`— ${grammarFeatures}`);
+  if (grammarFeatures && grammarFeatures !== 'unknown') metaParts.push(`· ${grammarFeatures}`);
 
   return (
     <ScrollView style={{ flexGrow: 0 }}>
       <View style={styles.titleRow}>
-        <Text style={[styles.popoverTitle, { color: palette.text }]}>{lemma.lemma}</Text>
+        <Text style={[theme.text.heading, { color: theme.color.text }]}>
+          {lemma.lemma}
+        </Text>
         <Pressable onPress={() => speak(lemma.lemma)} hitSlop={10}>
-          <Text style={[styles.speakBtn, { color: palette.tint }]}>🔊</Text>
+          <Text style={{ fontSize: 20, color: theme.color.accent }}>🔊</Text>
         </Pressable>
       </View>
-      <Text style={[styles.popoverMeta, { color: palette.muted }]}>{metaParts.join(' ')}</Text>
+      <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: theme.space.xs }]}>
+        {metaParts.join(' ')}
+      </Text>
       {clitics && clitics.length > 0 && (
-        <Text style={[styles.popoverClitics, { color: palette.muted }]}>
+        <Text
+          style={[
+            theme.text.tiny,
+            {
+              color: theme.color.textMuted,
+              marginTop: 2,
+              fontStyle: 'italic',
+            },
+          ]}
+        >
           + {clitics.join(' + ')}
         </Text>
       )}
-      {lemma.senses.slice(0, 5).map((sense, i) => (
-        <View key={i} style={styles.sense}>
-          <Text style={{ color: palette.text }}>
-            {i + 1}. {sense.definition}
-          </Text>
-          {sense.exampleEs && (
-            <Text style={[styles.example, { color: palette.muted }]}>
-              {sense.exampleEs}
-              {sense.exampleEn ? ` — ${sense.exampleEn}` : ''}
+      <View style={{ marginTop: theme.space.md }}>
+        {lemma.senses.slice(0, 5).map((sense, i) => (
+          <View key={i} style={{ marginTop: i === 0 ? 0 : theme.space.sm }}>
+            <Text style={[theme.text.body, { color: theme.color.text }]}>
+              {i + 1}. {sense.definition}
             </Text>
-          )}
-        </View>
-      ))}
+            {sense.exampleEs && (
+              <Text
+                style={[
+                  theme.text.tiny,
+                  {
+                    color: theme.color.textMuted,
+                    marginTop: 2,
+                    fontStyle: 'italic',
+                  },
+                ]}
+              >
+                {sense.exampleEs}
+                {sense.exampleEn ? ` — ${sense.exampleEn}` : ''}
+              </Text>
+            )}
+          </View>
+        ))}
+      </View>
 
-      <View style={styles.deckRow}>
+      <View style={[styles.deckRow, { marginTop: theme.space.xl }]}>
         {isCaptured ? (
-          <Text style={[styles.inDeck, { color: palette.muted }]}>✓ in deck</Text>
+          <Text style={[theme.text.bodyEm, { color: theme.color.textMuted }]}>
+            ✓ in deck
+          </Text>
         ) : (
           <Pressable
             onPress={onAddToDeck}
             disabled={captureLoading}
-            style={[styles.addBtn, { borderColor: palette.tint }]}
+            style={[
+              styles.addBtn,
+              {
+                backgroundColor: theme.color.accent,
+                borderRadius: theme.radius.md,
+                opacity: captureLoading ? 0.6 : 1,
+              },
+            ]}
           >
-            <Text style={{ color: palette.tint, fontWeight: '600' }}>
+            <Text style={[theme.text.bodyEm, { color: '#FFFFFF' }]}>
               {captureLoading ? 'Adding…' : 'Add to deck'}
             </Text>
           </Pressable>
         )}
         {captureError && (
-          <Text style={[styles.errorDetail, { color: palette.muted }]}>{captureError}</Text>
+          <Text style={[theme.text.tiny, { color: theme.color.textMuted }]}>
+            {captureError}
+          </Text>
         )}
       </View>
     </ScrollView>
@@ -277,32 +325,11 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { padding: 16, paddingBottom: 32 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  errorDetail: { fontSize: 12, marginTop: 4 },
-  title: { fontSize: 22, fontWeight: '600', marginBottom: 16 },
-  body: { fontSize: 18, lineHeight: 28 },
   word: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
-  backdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  popover: {
-    padding: 20,
-    paddingBottom: 32,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    maxHeight: '60%',
-  },
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
+  popover: { padding: 20, paddingBottom: 32, maxHeight: '70%' },
   popoverLoading: { paddingVertical: 16 },
-  popoverTitle: { fontSize: 24, fontWeight: '600' },
-  popoverMeta: { fontSize: 13, marginTop: 4 },
-  popoverClitics: { fontSize: 13, marginTop: 2, fontStyle: 'italic' },
-  sense: { marginTop: 12 },
-  example: { fontSize: 13, marginTop: 2, fontStyle: 'italic' },
-  deckRow: { marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  addBtn: { borderWidth: 1.5, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
-  inDeck: { fontSize: 14, fontWeight: '500' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  speakBtn: { fontSize: 20 },
+  deckRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  addBtn: { paddingVertical: 10, paddingHorizontal: 16 },
 });

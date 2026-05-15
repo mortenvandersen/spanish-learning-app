@@ -7,20 +7,18 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/Colors';
-import { usePassages } from '@/hooks/usePassages';
 import {
   useMarkRead,
   useMarkUnread,
   useReadPassageIds,
 } from '@/hooks/usePassageReads';
+import { usePassages } from '@/hooks/usePassages';
 import { describeError } from '@/services/errors';
+import { useTheme, type Theme } from '@/theme/useTheme';
 import type { Passage } from '@/types';
 
-type Palette = (typeof Colors)['light' | 'dark'];
 type FilterMode = 'all' | 'unread' | 'read';
 type SortMode = 'order' | 'level';
 
@@ -38,8 +36,7 @@ const SORT_OPTIONS: { label: string; value: SortMode }[] = [
 const LEVEL_ORDER: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5 };
 
 export default function ReadScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const theme = useTheme();
   const router = useRouter();
   const { data, isLoading, error } = usePassages();
   const { data: readIdsList } = useReadPassageIds();
@@ -71,17 +68,19 @@ export default function ReadScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: palette.background }]}>
-        <ActivityIndicator />
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+        <ActivityIndicator color={theme.color.accent} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.center, { backgroundColor: palette.background }]}>
-        <Text style={{ color: palette.text }}>Failed to load passages.</Text>
-        <Text style={[styles.errorDetail, { color: palette.muted }]}>
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+        <Text style={[theme.text.body, { color: theme.color.text }]}>
+          Failed to load passages.
+        </Text>
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: theme.space.xs }]}>
           {describeError(error)}
         </Text>
       </View>
@@ -90,29 +89,31 @@ export default function ReadScreen() {
 
   if (!data || data.length === 0) {
     return (
-      <View style={[styles.center, { backgroundColor: palette.background }]}>
-        <Text style={[styles.empty, { color: palette.muted }]}>No passages yet.</Text>
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+        <Text style={[theme.text.body, { color: theme.color.textMuted }]}>
+          No passages yet.
+        </Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView edges={['left', 'right']} style={[styles.root, { backgroundColor: palette.background }]}>
+    <SafeAreaView edges={['left', 'right']} style={[styles.root, { backgroundColor: theme.color.bg }]}>
       <View style={styles.controls}>
         <PillGroup
           options={FILTER_OPTIONS}
           value={filter}
           onChange={setFilter}
-          palette={palette}
+          theme={theme}
         />
         <PillGroup
           options={SORT_OPTIONS}
           value={sort}
           onChange={setSort}
-          palette={palette}
+          theme={theme}
         />
         {lastMutationError ? (
-          <Text style={[styles.errorDetail, { color: palette.muted }]}>
+          <Text style={[theme.text.tiny, { color: theme.color.textMuted }]}>
             {describeError(lastMutationError)}
           </Text>
         ) : null}
@@ -120,7 +121,7 @@ export default function ReadScreen() {
 
       {visiblePassages.length === 0 ? (
         <View style={styles.center}>
-          <Text style={[styles.empty, { color: palette.muted }]}>
+          <Text style={[theme.text.body, { color: theme.color.textMuted, textAlign: 'center' }]}>
             {filter === 'unread'
               ? 'Nothing unread. Switch filter to see all.'
               : filter === 'read'
@@ -138,7 +139,7 @@ export default function ReadScreen() {
             <PassageRow
               passage={item}
               isRead={readIds.has(item.id)}
-              palette={palette}
+              theme={theme}
               onOpen={() => router.push(`/reader/${item.id}`)}
               onToggle={() => {
                 if (readIds.has(item.id)) {
@@ -158,39 +159,61 @@ export default function ReadScreen() {
 function PassageRow({
   passage,
   isRead,
-  palette,
+  theme,
   onOpen,
   onToggle,
 }: {
   passage: Passage;
   isRead: boolean;
-  palette: Palette;
+  theme: Theme;
   onOpen: () => void;
   onToggle: () => void;
 }) {
   return (
-    <View style={[styles.row, { borderColor: palette.border }]}>
+    <View
+      style={[
+        styles.row,
+        {
+          backgroundColor: theme.color.surface,
+          borderRadius: theme.radius.lg,
+        },
+      ]}
+    >
       <Pressable
         onPress={onOpen}
-        style={({ pressed }) => [styles.rowBody, pressed && { opacity: 0.6 }]}
+        style={({ pressed }) => [styles.rowBody, pressed && styles.rowPressed]}
       >
         <Text
           style={[
-            styles.title,
-            { color: isRead ? palette.muted : palette.text },
-            isRead && styles.titleRead,
+            theme.text.subtitle,
+            {
+              color: isRead ? theme.color.textMuted : theme.color.text,
+              textDecorationLine: isRead ? 'line-through' : 'none',
+            },
           ]}
+          numberOfLines={2}
         >
           {passage.title}
         </Text>
-        <Text style={[styles.level, { color: palette.muted }]}>{passage.level}</Text>
-      </Pressable>
-      <Pressable onPress={onToggle} hitSlop={8} style={styles.checkbox}>
         <Text
           style={[
-            styles.checkboxText,
-            { color: isRead ? palette.tint : palette.muted },
+            theme.text.caption,
+            { color: theme.color.textMuted, marginTop: theme.space.xs },
           ]}
+        >
+          {passage.level}
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={onToggle}
+        hitSlop={8}
+        style={[styles.checkbox, { borderLeftColor: theme.color.border }]}
+      >
+        <Text
+          style={{
+            fontSize: 22,
+            color: isRead ? theme.color.accent : theme.color.textDim,
+          }}
         >
           {isRead ? '✓' : '○'}
         </Text>
@@ -203,12 +226,12 @@ function PillGroup<T extends string>({
   options,
   value,
   onChange,
-  palette,
+  theme,
 }: {
   options: { label: string; value: T }[];
   value: T;
   onChange: (v: T) => void;
-  palette: Palette;
+  theme: Theme;
 }) {
   return (
     <View style={styles.pillGroup}>
@@ -221,15 +244,18 @@ function PillGroup<T extends string>({
             style={[
               styles.pill,
               {
-                borderColor: palette.border,
-                backgroundColor: selected ? palette.tint : 'transparent',
+                backgroundColor: selected ? theme.color.accent : theme.color.surface,
+                borderRadius: theme.radius.full,
               },
             ]}
           >
             <Text
               style={[
-                styles.pillText,
-                { color: selected ? palette.background : palette.text },
+                theme.text.tiny,
+                {
+                  color: selected ? '#FFFFFF' : theme.color.text,
+                  fontFamily: theme.fontFamily.sansMedium,
+                },
               ]}
             >
               {opt.label}
@@ -244,34 +270,18 @@ function PillGroup<T extends string>({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  empty: { fontSize: 16, textAlign: 'center' },
-  errorDetail: { fontSize: 12, marginTop: 4 },
-  controls: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    gap: 8,
-  },
+  controls: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 },
   pillGroup: { flexDirection: 'row', gap: 6 },
-  pill: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
-  pillText: { fontSize: 13, fontWeight: '500' },
+  pill: { paddingHorizontal: 12, paddingVertical: 6 },
   list: { padding: 16 },
-  separator: { height: 12 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderWidth: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  rowBody: { flex: 1, padding: 16 },
-  title: { fontSize: 18, fontWeight: '600' },
-  titleRead: { textDecorationLine: 'line-through' },
-  level: { fontSize: 12, marginTop: 4, fontWeight: '500', letterSpacing: 0.5 },
+  separator: { height: 8 },
+  row: { flexDirection: 'row', alignItems: 'stretch', overflow: 'hidden' },
+  rowBody: { flex: 1, paddingVertical: 12, paddingHorizontal: 16 },
+  rowPressed: { opacity: 0.6 },
   checkbox: {
-    width: 56,
+    width: 52,
     alignItems: 'center',
     justifyContent: 'center',
+    borderLeftWidth: StyleSheet.hairlineWidth,
   },
-  checkboxText: { fontSize: 22, fontWeight: '500' },
 });
