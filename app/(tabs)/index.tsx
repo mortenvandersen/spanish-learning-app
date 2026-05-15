@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -40,12 +40,10 @@ export default function HomeScreen() {
   }, [concepts, readConceptIdsList]);
 
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView
-        edges={['top', 'left', 'right', 'bottom']}
-        style={[styles.root, { backgroundColor: theme.color.bg }]}
-      >
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={[styles.root, { backgroundColor: theme.color.bg }]}
+    >
         <View style={styles.brand}>
           <Text style={styles.emoji}>🇪🇸</Text>
           <Text style={[theme.text.display, { color: theme.color.text, marginTop: 8 }]}>
@@ -97,9 +95,8 @@ export default function HomeScreen() {
             muted
             onPress={() => router.push('/grammar')}
           />
-        </View>
-      </SafeAreaView>
-    </>
+      </View>
+    </SafeAreaView>
   );
 }
 

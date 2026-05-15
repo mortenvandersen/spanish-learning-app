@@ -58,11 +58,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: theme.color.bg },
           }}
         >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(sections)/read/index" options={{ title: 'Read' }} />
-          <Stack.Screen name="(sections)/study/index" options={{ title: 'Study' }} />
-          <Stack.Screen name="(sections)/concepts/index" options={{ title: 'Concepts' }} />
-          <Stack.Screen name="(sections)/grammar/index" options={{ title: 'Grammar' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="reader/[id]" options={{ title: '' }} />
           <Stack.Screen name="concept/[id]" options={{ title: '' }} />
           <Stack.Screen name="grammar/[slug]" options={{ title: '' }} />
