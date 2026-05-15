@@ -40,6 +40,7 @@ export interface Concept {
 }
 
 export type CardDirection = 'en_to_es' | 'es_to_en';
+export type CardType = 'vocab' | 'concept';
 
 export interface UserWord {
   id: string;
@@ -57,6 +58,7 @@ export interface UserWord {
   direction: CardDirection;
   lastReviewedAt: string | null;
   suspendedAt: string | null;
+  cardType: CardType;
 }
 
 export interface StudyStats {

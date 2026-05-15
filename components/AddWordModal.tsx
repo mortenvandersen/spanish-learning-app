@@ -11,7 +11,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useCaptureWord, useUserWords } from '@/hooks/useUserWords';
+import {
+  useCaptureCustomCard,
+  useCaptureWord,
+  useUserWords,
+} from '@/hooks/useUserWords';
 import { lookup } from '@/services/dictionary';
 import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
@@ -20,6 +24,13 @@ import type { LookupResult } from '@/types';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
+type Mode = 'word' | 'custom';
+
+const MODES: { label: string; value: Mode }[] = [
+  { label: 'Spanish word', value: 'word' },
+  { label: 'Custom card', value: 'custom' },
+];
+
 interface AddWordModalProps {
   visible: boolean;
   onClose: () => void;
@@ -27,7 +38,112 @@ interface AddWordModalProps {
 
 export function AddWordModal({ visible, onClose }: AddWordModalProps) {
   const theme = useTheme();
+  const [mode, setMode] = useState<Mode>('word');
 
+  useEffect(() => {
+    if (!visible) setMode('word');
+  }, [visible]);
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.kbAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: theme.color.backdrop }]}
+          onPress={onClose}
+        >
+          <Pressable
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: theme.color.surfaceElevated,
+                borderTopLeftRadius: theme.radius.xl,
+                borderTopRightRadius: theme.radius.xl,
+              },
+            ]}
+            onPress={() => {
+              /* absorb taps so the backdrop doesn't dismiss */
+            }}
+          >
+            <View style={styles.headerRow}>
+              <Text style={[theme.text.subtitle, { color: theme.color.text }]}>
+                Add a card
+              </Text>
+              <Pressable onPress={onClose} hitSlop={12}>
+                <Text style={[theme.text.heading, { color: theme.color.textMuted, fontSize: 20 }]}>
+                  ✕
+                </Text>
+              </Pressable>
+            </View>
+
+            <ModeSwitcher value={mode} onChange={setMode} theme={theme} />
+
+            {mode === 'word' ? (
+              <WordLookupForm visible={visible} theme={theme} />
+            ) : (
+              <CustomCardForm visible={visible} theme={theme} />
+            )}
+          </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function ModeSwitcher({
+  value,
+  onChange,
+  theme,
+}: {
+  value: Mode;
+  onChange: (m: Mode) => void;
+  theme: Theme;
+}) {
+  return (
+    <View
+      style={[
+        styles.modeSwitcher,
+        {
+          backgroundColor: theme.color.bg,
+          borderRadius: theme.radius.md,
+        },
+      ]}
+    >
+      {MODES.map(m => {
+        const selected = m.value === value;
+        return (
+          <Pressable
+            key={m.value}
+            onPress={() => onChange(m.value)}
+            style={[
+              styles.modeBtn,
+              {
+                backgroundColor: selected ? theme.color.accent : 'transparent',
+                borderRadius: theme.radius.sm,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                theme.text.tiny,
+                {
+                  color: selected ? '#FFFFFF' : theme.color.text,
+                  fontFamily: theme.fontFamily.sansMedium,
+                },
+              ]}
+            >
+              {m.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function WordLookupForm({ visible, theme }: { visible: boolean; theme: Theme }) {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [result, setResult] = useState<LookupResult | null>(null);
@@ -113,94 +229,186 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
   const showNotFound = !!debounced && !isSearching && result === null && !searchError;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.kbAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <>
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Spanish word"
+        placeholderTextColor={theme.color.textDim}
+        autoFocus
+        autoCorrect={false}
+        autoCapitalize="none"
+        spellCheck={false}
+        style={[
+          styles.input,
+          theme.text.body,
+          {
+            color: theme.color.text,
+            borderColor: theme.color.border,
+            backgroundColor: theme.color.bg,
+            borderRadius: theme.radius.md,
+          },
+        ]}
+      />
+
+      {isSearching && (
+        <View style={styles.statusRow}>
+          <ActivityIndicator color={theme.color.accent} />
+        </View>
+      )}
+
+      {searchError && (
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 12 }]}>
+          {searchError}
+        </Text>
+      )}
+
+      {showNotFound && (
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 12 }]}>
+          Not in dictionary.
+        </Text>
+      )}
+
+      {result && (
+        <ResultCard
+          result={result}
+          theme={theme}
+          isCaptured={isCaptured}
+          captureLoading={captureMutation.isPending}
+          captureError={
+            captureMutation.error ? describeError(captureMutation.error) : null
+          }
+          onAdd={handleAdd}
+        />
+      )}
+    </>
+  );
+}
+
+function CustomCardForm({ visible, theme }: { visible: boolean; theme: Theme }) {
+  const [front, setFront] = useState('');
+  const [back, setBack] = useState('');
+  const customMutation = useCaptureCustomCard();
+
+  useEffect(() => {
+    if (!visible) {
+      setFront('');
+      setBack('');
+      customMutation.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const canSubmit = front.trim() !== '' && back.trim() !== '' && !customMutation.isPending;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    customMutation.mutate(
+      { front: front.trim(), back: back.trim() },
+      {
+        onSuccess: () => {
+          setFront('');
+          setBack('');
+        },
+      },
+    );
+  };
+
+  const error = customMutation.error ? describeError(customMutation.error) : null;
+  const justAdded = customMutation.isSuccess && front === '' && back === '';
+
+  return (
+    <View>
+      <Text
+        style={[
+          theme.text.caption,
+          { color: theme.color.textMuted, marginTop: theme.space.md },
+        ]}
       >
-        <Pressable
-          style={[styles.backdrop, { backgroundColor: theme.color.backdrop }]}
-          onPress={onClose}
+        Front (question)
+      </Text>
+      <TextInput
+        value={front}
+        onChangeText={setFront}
+        placeholder="e.g. When to use 'por'?"
+        placeholderTextColor={theme.color.textDim}
+        autoFocus
+        multiline
+        style={[
+          styles.input,
+          theme.text.body,
+          {
+            color: theme.color.text,
+            borderColor: theme.color.border,
+            backgroundColor: theme.color.bg,
+            borderRadius: theme.radius.md,
+            marginTop: theme.space.xs,
+            minHeight: 44,
+          },
+        ]}
+      />
+
+      <Text
+        style={[
+          theme.text.caption,
+          { color: theme.color.textMuted, marginTop: theme.space.md },
+        ]}
+      >
+        Back (answer)
+      </Text>
+      <TextInput
+        value={back}
+        onChangeText={setBack}
+        placeholder="e.g. Cause, exchange, duration, means"
+        placeholderTextColor={theme.color.textDim}
+        multiline
+        style={[
+          styles.input,
+          theme.text.body,
+          {
+            color: theme.color.text,
+            borderColor: theme.color.border,
+            backgroundColor: theme.color.bg,
+            borderRadius: theme.radius.md,
+            marginTop: theme.space.xs,
+            minHeight: 44,
+          },
+        ]}
+      />
+
+      <Pressable
+        onPress={handleSubmit}
+        disabled={!canSubmit}
+        style={[
+          styles.addBtn,
+          {
+            backgroundColor: canSubmit ? theme.color.accent : theme.color.surface,
+            borderRadius: theme.radius.md,
+            marginTop: theme.space.lg,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            theme.text.bodyEm,
+            { color: canSubmit ? '#FFFFFF' : theme.color.textMuted },
+          ]}
         >
-          <Pressable
-            style={[
-              styles.sheet,
-              {
-                backgroundColor: theme.color.surfaceElevated,
-                borderTopLeftRadius: theme.radius.xl,
-                borderTopRightRadius: theme.radius.xl,
-              },
-            ]}
-            onPress={() => {
-              /* absorb taps so the backdrop doesn't dismiss */
-            }}
-          >
-            <View style={styles.headerRow}>
-              <Text style={[theme.text.subtitle, { color: theme.color.text }]}>
-                Add a word
-              </Text>
-              <Pressable onPress={onClose} hitSlop={12}>
-                <Text style={[theme.text.heading, { color: theme.color.textMuted, fontSize: 20 }]}>
-                  ✕
-                </Text>
-              </Pressable>
-            </View>
+          {customMutation.isPending ? 'Adding…' : 'Add to deck'}
+        </Text>
+      </Pressable>
 
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Spanish word"
-              placeholderTextColor={theme.color.textDim}
-              autoFocus
-              autoCorrect={false}
-              autoCapitalize="none"
-              spellCheck={false}
-              style={[
-                styles.input,
-                theme.text.body,
-                {
-                  color: theme.color.text,
-                  borderColor: theme.color.border,
-                  backgroundColor: theme.color.bg,
-                  borderRadius: theme.radius.md,
-                },
-              ]}
-            />
-
-            {isSearching && (
-              <View style={styles.statusRow}>
-                <ActivityIndicator color={theme.color.accent} />
-              </View>
-            )}
-
-            {searchError && (
-              <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 12 }]}>
-                {searchError}
-              </Text>
-            )}
-
-            {showNotFound && (
-              <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 12 }]}>
-                Not in dictionary.
-              </Text>
-            )}
-
-            {result && (
-              <ResultCard
-                result={result}
-                theme={theme}
-                isCaptured={isCaptured}
-                captureLoading={captureMutation.isPending}
-                captureError={
-                  captureMutation.error ? describeError(captureMutation.error) : null
-                }
-                onAdd={handleAdd}
-              />
-            )}
-          </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
-    </Modal>
+      {justAdded && (
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: theme.space.sm }]}>
+          Added — type another or close.
+        </Text>
+      )}
+      {error && (
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: theme.space.sm }]}>
+          {error}
+        </Text>
+      )}
+    </View>
   );
 }
 
@@ -291,14 +499,20 @@ const styles = StyleSheet.create({
   sheet: {
     padding: 20,
     paddingBottom: 32,
-    maxHeight: '80%',
-    minHeight: 240,
+    maxHeight: '85%',
+    minHeight: 280,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  modeSwitcher: { flexDirection: 'row', padding: 3, marginBottom: 12 },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: 'center',
   },
   input: {
     borderWidth: 1,
@@ -309,5 +523,9 @@ const styles = StyleSheet.create({
   result: { marginTop: 12, flexGrow: 0 },
   lemmaRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  addBtn: { paddingVertical: 10, paddingHorizontal: 16 },
+  addBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
 });

@@ -7,7 +7,7 @@
  * carry independent SRS state.
  */
 
-import type { CardDirection, StudyStats, UserWord } from '@/types';
+import type { CardDirection, CardType, StudyStats, UserWord } from '@/types';
 import { getDeviceId } from './deviceId';
 import { toError } from './errors';
 import { initialState, nextState, type Rating, type SrsState } from './srs';
@@ -29,10 +29,11 @@ interface UserWordRow {
   direction: CardDirection;
   last_reviewed_at: string | null;
   suspended_at: string | null;
+  card_type: CardType;
 }
 
 const SELECT_COLUMNS =
-  'id, user_id, spanish, english, part_of_speech, source_passage_id, source_sentence, added_at, srs_due, srs_interval, srs_ease, srs_repetitions, direction, last_reviewed_at, suspended_at';
+  'id, user_id, spanish, english, part_of_speech, source_passage_id, source_sentence, added_at, srs_due, srs_interval, srs_ease, srs_repetitions, direction, last_reviewed_at, suspended_at, card_type';
 
 function toUserWord(row: UserWordRow): UserWord {
   return {
@@ -51,6 +52,7 @@ function toUserWord(row: UserWordRow): UserWord {
     direction: row.direction,
     lastReviewedAt: row.last_reviewed_at,
     suspendedAt: row.suspended_at,
+    cardType: row.card_type,
   };
 }
 
@@ -119,6 +121,44 @@ export async function captureWord(input: CaptureWordInput): Promise<UserWord[]> 
     .select(SELECT_COLUMNS);
   if (error) throw toError(error);
   return (data as UserWordRow[]).map(toUserWord);
+}
+
+export interface CustomCardInput {
+  front: string;
+  back: string;
+}
+
+/**
+ * Insert a manually-written flashcard. Single row (no bidirectional mirror).
+ * Front text is stored in `english`, back text in `spanish`, with
+ * `card_type = 'concept'`. The Study screens render it identically to a
+ * vocab card thanks to `direction = 'en_to_es'` (front shows English-slot,
+ * back reveals the Spanish-slot).
+ */
+export async function captureCustomCard(input: CustomCardInput): Promise<UserWord> {
+  const supabase = await getSupabase();
+  const userId = await getDeviceId();
+  const state = initialState();
+  const { data, error } = await supabase
+    .from('user_words')
+    .insert({
+      user_id: userId,
+      spanish: input.back,
+      english: input.front,
+      part_of_speech: 'concept',
+      source_passage_id: null,
+      source_sentence: null,
+      srs_due: state.due,
+      srs_interval: state.interval,
+      srs_ease: state.ease,
+      srs_repetitions: state.repetitions,
+      direction: 'en_to_es',
+      card_type: 'concept',
+    })
+    .select(SELECT_COLUMNS)
+    .single();
+  if (error) throw toError(error);
+  return toUserWord(data as UserWordRow);
 }
 
 export async function reviewUserWord(

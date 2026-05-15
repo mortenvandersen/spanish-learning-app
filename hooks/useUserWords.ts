@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  captureCustomCard,
   captureWord,
   getStudyStats,
   listDueUserWords,
@@ -7,6 +8,7 @@ import {
   reviewUserWord,
   suspendUserWord,
   type CaptureWordInput,
+  type CustomCardInput,
 } from '@/services/userWords';
 import type { Rating } from '@/services/srs';
 import type { UserWord } from '@/types';
@@ -40,6 +42,16 @@ export function useCaptureWord() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CaptureWordInput) => captureWord(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['userWords'] });
+    },
+  });
+}
+
+export function useCaptureCustomCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CustomCardInput) => captureCustomCard(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['userWords'] });
     },
