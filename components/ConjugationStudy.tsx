@@ -8,7 +8,6 @@ import {
   View,
 } from 'react-native';
 import { StudyDashboard } from '@/components/StudyDashboard';
-import { Colors } from '@/constants/Colors';
 import {
   useConjugationStats,
   useDueConjugationCards,
@@ -19,9 +18,8 @@ import {
 import { renderCloze } from '@/services/cloze';
 import { describeError } from '@/services/errors';
 import { formatInterval, nextState, type Rating, type SrsState } from '@/services/srs';
+import { useTheme, type Theme } from '@/theme/useTheme';
 import type { ConjugationCardState, ConjugationCardWithState } from '@/types';
-
-type Palette = (typeof Colors)['light' | 'dark'];
 
 const RATINGS: { label: string; value: Rating }[] = [
   { label: 'Again', value: 'again' },
@@ -30,7 +28,8 @@ const RATINGS: { label: string; value: Rating }[] = [
   { label: 'Easy', value: 'easy' },
 ];
 
-export function ConjugationStudy({ palette }: { palette: Palette }) {
+export function ConjugationStudy() {
+  const theme = useTheme();
   const { data: dueCards, isLoading, error } = useDueConjugationCards();
   const { data: stats } = useConjugationStats();
   const reviewMutation = useReviewConjugationCard();
@@ -51,7 +50,7 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={theme.color.accent} />
       </View>
     );
   }
@@ -59,8 +58,10 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: palette.text }}>Failed to load conjugation cards.</Text>
-        <Text style={[styles.errorDetail, { color: palette.muted }]}>
+        <Text style={[theme.text.body, { color: theme.color.text }]}>
+          Failed to load conjugation cards.
+        </Text>
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 4 }]}>
           {describeError(error)}
         </Text>
       </View>
@@ -81,10 +82,21 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
   };
 
   const releaseControl = (
-    <View style={styles.releaseRow}>
-      <View style={styles.releaseLeft}>
-        <Text style={[styles.releaseLabel, { color: palette.muted }]}>Released</Text>
-        <Text style={[styles.releaseProgress, { color: palette.text }]}>
+    <View
+      style={[
+        styles.releaseRow,
+        {
+          borderBottomColor: theme.color.border,
+          paddingBottom: theme.space.sm,
+          marginBottom: theme.space.sm,
+        },
+      ]}
+    >
+      <View>
+        <Text style={[theme.text.caption, { color: theme.color.textMuted }]}>
+          Released
+        </Text>
+        <Text style={[theme.text.subtitle, { color: theme.color.text, marginTop: 2 }]}>
           {released} / {total}
         </Text>
       </View>
@@ -95,18 +107,30 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
             onChangeText={setReleaseCount}
             keyboardType="number-pad"
             placeholder="10"
-            placeholderTextColor={palette.muted}
+            placeholderTextColor={theme.color.textDim}
             style={[
               styles.releaseInput,
-              { color: palette.text, borderColor: palette.border },
+              {
+                color: theme.color.text,
+                borderColor: theme.color.border,
+                backgroundColor: theme.color.bg,
+                fontFamily: theme.fontFamily.sansMedium,
+              },
             ]}
           />
           <Pressable
             onPress={handleApplyRelease}
             disabled={releaseMutation.isPending}
-            style={[styles.releaseBtn, { borderColor: palette.tint }]}
+            style={[
+              styles.releaseBtn,
+              {
+                backgroundColor: theme.color.accent,
+                borderRadius: theme.radius.md,
+                opacity: releaseMutation.isPending ? 0.6 : 1,
+              },
+            ]}
           >
-            <Text style={{ color: palette.tint, fontWeight: '600' }}>
+            <Text style={[theme.text.bodyEm, { color: '#FFFFFF' }]}>
               {releaseMutation.isPending ? '…' : 'Release'}
             </Text>
           </Pressable>
@@ -117,45 +141,67 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
 
   return (
     <View style={styles.root}>
-      {stats && (
-        <StudyDashboard stats={stats} palette={palette} extra={releaseControl} />
-      )}
+      {stats && <StudyDashboard stats={stats} extra={releaseControl} />}
       {releaseMutation.error && (
-        <Text style={[styles.errorDetail, { color: palette.muted }]}>
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginBottom: theme.space.sm }]}>
           {describeError(releaseMutation.error)}
         </Text>
       )}
 
       {!current ? (
         <View style={styles.center}>
-          <Text style={[styles.empty, { color: palette.text }]}>
+          <Text style={[theme.text.heading, { color: theme.color.text, textAlign: 'center' }]}>
             {released === 0
               ? 'Nothing released yet.'
               : 'All caught up for the released set.'}
           </Text>
-          <Text style={[styles.emptyHint, { color: palette.muted }]}>
+          <Text
+            style={[
+              theme.text.tiny,
+              { color: theme.color.textMuted, marginTop: 8, textAlign: 'center' },
+            ]}
+          >
             {released === 0
               ? 'Release a batch above to start studying.'
               : remaining > 0
                 ? 'Release more cards above to extend the deck.'
-                : 'You\'ve released the entire deck.'}
+                : "You've released the entire deck."}
           </Text>
         </View>
       ) : (
         <>
-          <View style={styles.header}>
-            <Text style={[styles.counter, { color: palette.muted }]}>
-              {queue.length} card{queue.length === 1 ? '' : 's'} left
-            </Text>
-          </View>
+          <Text
+            style={[
+              theme.text.tiny,
+              {
+                color: theme.color.textMuted,
+                alignSelf: 'flex-end',
+                marginBottom: theme.space.sm,
+              },
+            ]}
+          >
+            {queue.length} card{queue.length === 1 ? '' : 's'} left
+          </Text>
 
           <Pressable
             onPress={() => setRevealed(r => !r)}
-            style={[styles.card, { borderColor: palette.border }]}
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.color.surface,
+                borderRadius: theme.radius.lg,
+              },
+            ]}
           >
-            <CardFace card={current} revealed={revealed} palette={palette} />
+            <CardFace card={current} revealed={revealed} theme={theme} />
             {!revealed && (
-              <Text style={[styles.hint, { color: palette.muted }]}>
+              <Text
+                style={[
+                  theme.text.tiny,
+                  styles.hint,
+                  { color: theme.color.textDim },
+                ]}
+              >
                 tap to reveal
               </Text>
             )}
@@ -175,12 +221,18 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
                     });
                     setRevealed(false);
                   }}
-                  style={[styles.ratingBtn, { borderColor: palette.border }]}
+                  style={[
+                    styles.ratingBtn,
+                    {
+                      backgroundColor: theme.color.surface,
+                      borderRadius: theme.radius.md,
+                    },
+                  ]}
                 >
-                  <Text style={[styles.ratingText, { color: palette.text }]}>
+                  <Text style={[theme.text.bodyEm, { color: theme.color.text }]}>
                     {r.label}
                   </Text>
-                  <Text style={[styles.ratingInterval, { color: palette.muted }]}>
+                  <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 2 }]}>
                     {previews[r.value]}
                   </Text>
                 </Pressable>
@@ -196,13 +248,20 @@ export function ConjugationStudy({ palette }: { palette: Palette }) {
                     });
                     setRevealed(false);
                   }}
-                  style={[styles.ratingBtn, styles.removeBtn, { borderColor: palette.border }]}
+                  style={[
+                    styles.ratingBtn,
+                    {
+                      backgroundColor: theme.color.surface,
+                      borderRadius: theme.radius.md,
+                      opacity: 0.6,
+                    },
+                  ]}
                 >
-                  <Text style={[styles.ratingText, { color: palette.muted }]}>
+                  <Text style={[theme.text.bodyEm, { color: theme.color.textMuted }]}>
                     Remove
                   </Text>
-                  <Text style={[styles.ratingInterval, { color: palette.muted }]}>
-                    first-time only
+                  <Text style={[theme.text.tiny, { color: theme.color.textDim, marginTop: 2 }]}>
+                    first-time
                   </Text>
                 </Pressable>
               )}
@@ -242,25 +301,65 @@ function useNextIntervals(state: ConjugationCardState | undefined): Record<Ratin
 function CardFace({
   card,
   revealed,
-  palette,
+  theme,
 }: {
   card: ConjugationCardWithState;
   revealed: boolean;
-  palette: Palette;
+  theme: Theme;
 }) {
   const { front, back } = useMemo(() => renderCloze(card.card.prompt), [card.card.prompt]);
 
   if (!revealed) {
-    return <Text style={[styles.prompt, { color: palette.text }]}>{front}</Text>;
+    return (
+      <Text
+        style={[
+          theme.text.heading,
+          { color: theme.color.text, textAlign: 'center', lineHeight: 28 },
+        ]}
+      >
+        {front}
+      </Text>
+    );
   }
   return (
     <View style={styles.backFace}>
-      <Text style={[styles.prompt, { color: palette.text }]}>{back}</Text>
+      <Text
+        style={[
+          theme.text.heading,
+          { color: theme.color.text, textAlign: 'center', lineHeight: 28 },
+        ]}
+      >
+        {back}
+      </Text>
       {card.card.verb && (
-        <Text style={[styles.verb, { color: palette.muted }]}>{card.card.verb}</Text>
+        <Text
+          style={[
+            theme.text.tiny,
+            {
+              color: theme.color.accent,
+              marginTop: theme.space.md,
+              fontStyle: 'italic',
+            },
+          ]}
+        >
+          {card.card.verb}
+        </Text>
       )}
       {card.card.notes && (
-        <Text style={[styles.notes, { color: palette.muted }]}>{card.card.notes}</Text>
+        <Text
+          style={[
+            theme.text.tiny,
+            {
+              color: theme.color.textMuted,
+              marginTop: theme.space.lg,
+              textAlign: 'center',
+              paddingHorizontal: theme.space.sm,
+              lineHeight: 18,
+            },
+          ]}
+        >
+          {card.card.notes}
+        </Text>
       )}
     </View>
   );
@@ -269,72 +368,35 @@ function CardFace({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  errorDetail: { fontSize: 12, marginTop: 4, marginBottom: 8 },
-  empty: { fontSize: 20, fontWeight: '600', textAlign: 'center' },
-  emptyHint: { fontSize: 14, marginTop: 8, textAlign: 'center' },
   releaseRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
-    paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#80808040',
   },
-  releaseLeft: { flexDirection: 'column' },
-  releaseLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
-  releaseProgress: { fontSize: 15, fontWeight: '600', marginTop: 2 },
   releaseRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   releaseInput: {
     borderWidth: 1,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    width: 64,
+    width: 60,
     textAlign: 'center',
     fontSize: 14,
   },
-  releaseBtn: {
-    borderWidth: 1.5,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  header: { alignItems: 'flex-end', marginBottom: 12 },
-  counter: { fontSize: 13, fontWeight: '500' },
+  releaseBtn: { paddingHorizontal: 14, paddingVertical: 8 },
   card: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hint: { position: 'absolute', bottom: 16, fontSize: 12 },
-  prompt: {
-    fontSize: 20,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 28,
-  },
+  hint: { position: 'absolute', bottom: 14 },
   backFace: { alignItems: 'center' },
-  verb: { fontSize: 13, marginTop: 12, fontStyle: 'italic' },
-  notes: {
-    fontSize: 13,
-    marginTop: 16,
-    textAlign: 'center',
-    paddingHorizontal: 8,
-    lineHeight: 18,
-  },
-  ratings: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  ratings: { flexDirection: 'row', gap: 6, marginTop: 12 },
   ratingBtn: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
   },
-  ratingText: { fontSize: 14, fontWeight: '600' },
-  ratingInterval: { fontSize: 11, marginTop: 4 },
-  removeBtn: { opacity: 0.7 },
 });

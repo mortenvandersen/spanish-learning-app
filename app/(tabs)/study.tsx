@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ConjugationStudy } from '@/components/ConjugationStudy';
 import { VocabStudy } from '@/components/VocabStudy';
-import { Colors } from '@/constants/Colors';
 import { useConjugationStats } from '@/hooks/useConjugationCards';
 import { useStudyStats } from '@/hooks/useUserWords';
+import { useTheme, type Theme } from '@/theme/useTheme';
 
-type Palette = (typeof Colors)['light' | 'dark'];
 type Deck = 'vocab' | 'conjugation';
 
 const DECKS: { label: string; value: Deck }[] = [
@@ -16,8 +15,7 @@ const DECKS: { label: string; value: Deck }[] = [
 ];
 
 export default function StudyScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const theme = useTheme();
   const [deck, setDeck] = useState<Deck>('vocab');
 
   const { data: vocabStats } = useStudyStats();
@@ -27,19 +25,20 @@ export default function StudyScreen() {
   return (
     <SafeAreaView
       edges={['left', 'right', 'bottom']}
-      style={[styles.root, { backgroundColor: palette.background }]}
+      style={[styles.root, { backgroundColor: theme.color.bg }]}
     >
-      <Text style={[styles.totalLine, { color: palette.muted }]}>
+      <Text
+        style={[
+          theme.text.tiny,
+          { color: theme.color.textMuted, textAlign: 'center', marginBottom: 8 },
+        ]}
+      >
         Today: {totalToday} reviewed across all decks
       </Text>
 
-      <DeckSwitcher value={deck} onChange={setDeck} palette={palette} />
+      <DeckSwitcher value={deck} onChange={setDeck} theme={theme} />
 
-      {deck === 'vocab' ? (
-        <VocabStudy palette={palette} />
-      ) : (
-        <ConjugationStudy palette={palette} />
-      )}
+      {deck === 'vocab' ? <VocabStudy /> : <ConjugationStudy />}
     </SafeAreaView>
   );
 }
@@ -47,14 +46,23 @@ export default function StudyScreen() {
 function DeckSwitcher({
   value,
   onChange,
-  palette,
+  theme,
 }: {
   value: Deck;
   onChange: (d: Deck) => void;
-  palette: Palette;
+  theme: Theme;
 }) {
   return (
-    <View style={styles.switcher}>
+    <View
+      style={[
+        styles.switcher,
+        {
+          backgroundColor: theme.color.surface,
+          borderRadius: theme.radius.md,
+          padding: 3,
+        },
+      ]}
+    >
       {DECKS.map(d => {
         const selected = d.value === value;
         return (
@@ -64,15 +72,18 @@ function DeckSwitcher({
             style={[
               styles.switcherBtn,
               {
-                borderColor: palette.border,
-                backgroundColor: selected ? palette.tint : 'transparent',
+                backgroundColor: selected ? theme.color.accent : 'transparent',
+                borderRadius: theme.radius.sm,
               },
             ]}
           >
             <Text
               style={[
-                styles.switcherText,
-                { color: selected ? palette.background : palette.text },
+                theme.text.bodyEm,
+                {
+                  color: selected ? '#FFFFFF' : theme.color.text,
+                  fontSize: 13,
+                },
               ]}
             >
               {d.label}
@@ -86,18 +97,10 @@ function DeckSwitcher({
 
 const styles = StyleSheet.create({
   root: { flex: 1, padding: 16 },
-  totalLine: { fontSize: 12, textAlign: 'center', marginBottom: 8 },
-  switcher: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 12,
-  },
+  switcher: { flexDirection: 'row', marginBottom: 12 },
   switcherBtn: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
   },
-  switcherText: { fontSize: 14, fontWeight: '600' },
 });

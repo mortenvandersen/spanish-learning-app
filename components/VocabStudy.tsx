@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AddWordModal } from '@/components/AddWordModal';
 import { StudyDashboard } from '@/components/StudyDashboard';
-import { Colors } from '@/constants/Colors';
 import {
   useDueUserWords,
   useReviewUserWord,
@@ -12,9 +11,8 @@ import {
 import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
 import { formatInterval, nextState, type Rating, type SrsState } from '@/services/srs';
+import { useTheme, type Theme } from '@/theme/useTheme';
 import type { UserWord } from '@/types';
-
-type Palette = (typeof Colors)['light' | 'dark'];
 
 const RATINGS: { label: string; value: Rating }[] = [
   { label: 'Again', value: 'again' },
@@ -23,7 +21,8 @@ const RATINGS: { label: string; value: Rating }[] = [
   { label: 'Easy', value: 'easy' },
 ];
 
-export function VocabStudy({ palette }: { palette: Palette }) {
+export function VocabStudy() {
+  const theme = useTheme();
   const { data: dueWords, isLoading, error } = useDueUserWords();
   const { data: stats } = useStudyStats();
   const reviewMutation = useReviewUserWord();
@@ -43,7 +42,7 @@ export function VocabStudy({ palette }: { palette: Palette }) {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={theme.color.accent} />
       </View>
     );
   }
@@ -51,8 +50,10 @@ export function VocabStudy({ palette }: { palette: Palette }) {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: palette.text }}>Failed to load due words.</Text>
-        <Text style={[styles.errorDetail, { color: palette.muted }]}>
+        <Text style={[theme.text.body, { color: theme.color.text }]}>
+          Failed to load due words.
+        </Text>
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 4 }]}>
           {describeError(error)}
         </Text>
       </View>
@@ -65,34 +66,69 @@ export function VocabStudy({ palette }: { palette: Palette }) {
     <View style={styles.root}>
       <View style={styles.topBar}>
         <Pressable onPress={() => setAddOpen(true)} hitSlop={12}>
-          <Text style={[styles.topBarAdd, { color: palette.tint }]}>+ Add word</Text>
+          <Text
+            style={[
+              theme.text.bodyEm,
+              { color: theme.color.accent },
+            ]}
+          >
+            + Add word
+          </Text>
         </Pressable>
       </View>
 
-      {stats && <StudyDashboard stats={stats} palette={palette} />}
+      {stats && <StudyDashboard stats={stats} />}
 
       {!current ? (
         <View style={styles.center}>
-          <Text style={[styles.empty, { color: palette.text }]}>All caught up.</Text>
-          <Text style={[styles.emptyHint, { color: palette.muted }]}>
+          <Text style={[theme.text.heading, { color: theme.color.text }]}>
+            All caught up.
+          </Text>
+          <Text
+            style={[
+              theme.text.tiny,
+              { color: theme.color.textMuted, marginTop: 8, textAlign: 'center' },
+            ]}
+          >
             Capture words from the Read tab to build your deck.
           </Text>
         </View>
       ) : (
         <>
-          <View style={styles.header}>
-            <Text style={[styles.counter, { color: palette.muted }]}>
-              {queue.length} card{queue.length === 1 ? '' : 's'} left
-            </Text>
-          </View>
+          <Text
+            style={[
+              theme.text.tiny,
+              {
+                color: theme.color.textMuted,
+                alignSelf: 'flex-end',
+                marginBottom: theme.space.sm,
+              },
+            ]}
+          >
+            {queue.length} card{queue.length === 1 ? '' : 's'} left
+          </Text>
 
           <Pressable
             onPress={() => setRevealed(r => !r)}
-            style={[styles.card, { borderColor: palette.border }]}
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.color.surface,
+                borderRadius: theme.radius.lg,
+              },
+            ]}
           >
-            <CardFace word={current} revealed={revealed} palette={palette} />
+            <CardFace word={current} revealed={revealed} theme={theme} />
             {!revealed && (
-              <Text style={[styles.hint, { color: palette.muted }]}>tap to reveal</Text>
+              <Text
+                style={[
+                  theme.text.tiny,
+                  styles.hint,
+                  { color: theme.color.textDim },
+                ]}
+              >
+                tap to reveal
+              </Text>
             )}
           </Pressable>
 
@@ -110,12 +146,18 @@ export function VocabStudy({ palette }: { palette: Palette }) {
                     });
                     setRevealed(false);
                   }}
-                  style={[styles.ratingBtn, { borderColor: palette.border }]}
+                  style={[
+                    styles.ratingBtn,
+                    {
+                      backgroundColor: theme.color.surface,
+                      borderRadius: theme.radius.md,
+                    },
+                  ]}
                 >
-                  <Text style={[styles.ratingText, { color: palette.text }]}>
+                  <Text style={[theme.text.bodyEm, { color: theme.color.text }]}>
                     {r.label}
                   </Text>
-                  <Text style={[styles.ratingInterval, { color: palette.muted }]}>
+                  <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 2 }]}>
                     {previews[r.value]}
                   </Text>
                 </Pressable>
@@ -131,13 +173,20 @@ export function VocabStudy({ palette }: { palette: Palette }) {
                     });
                     setRevealed(false);
                   }}
-                  style={[styles.ratingBtn, styles.removeBtn, { borderColor: palette.border }]}
+                  style={[
+                    styles.ratingBtn,
+                    {
+                      backgroundColor: theme.color.surface,
+                      borderRadius: theme.radius.md,
+                      opacity: 0.6,
+                    },
+                  ]}
                 >
-                  <Text style={[styles.ratingText, { color: palette.muted }]}>
+                  <Text style={[theme.text.bodyEm, { color: theme.color.textMuted }]}>
                     Remove
                   </Text>
-                  <Text style={[styles.ratingInterval, { color: palette.muted }]}>
-                    first-time only
+                  <Text style={[theme.text.tiny, { color: theme.color.textDim, marginTop: 2 }]}>
+                    first-time
                   </Text>
                 </Pressable>
               )}
@@ -179,11 +228,11 @@ function useNextIntervals(word: UserWord | undefined): Record<Rating, string> {
 function CardFace({
   word,
   revealed,
-  palette,
+  theme,
 }: {
   word: UserWord;
   revealed: boolean;
-  palette: Palette;
+  theme: Theme;
 }) {
   const spanishOnFront = word.direction === 'es_to_en';
   const frontText = spanishOnFront ? word.spanish : word.english;
@@ -193,7 +242,11 @@ function CardFace({
   if (!revealed) {
     return (
       <View style={styles.spanishRow}>
-        <Text style={[styles.faceText, { color: palette.text }]}>{frontText}</Text>
+        <Text
+          style={[theme.text.display, { color: theme.color.text, textAlign: 'center' }]}
+        >
+          {frontText}
+        </Text>
         {spanishOnFront && (
           <Pressable
             onPress={e => {
@@ -202,7 +255,7 @@ function CardFace({
             }}
             hitSlop={12}
           >
-            <Text style={[styles.speakBtn, { color: palette.tint }]}>🔊</Text>
+            <Text style={{ fontSize: 22, color: theme.color.accent }}>🔊</Text>
           </Pressable>
         )}
       </View>
@@ -211,7 +264,11 @@ function CardFace({
   return (
     <View style={styles.backFace}>
       <View style={styles.spanishRow}>
-        <Text style={[styles.faceText, { color: palette.text }]}>{backText}</Text>
+        <Text
+          style={[theme.text.display, { color: theme.color.text, textAlign: 'center' }]}
+        >
+          {backText}
+        </Text>
         {backIsSpanish && (
           <Pressable
             onPress={e => {
@@ -220,13 +277,31 @@ function CardFace({
             }}
             hitSlop={12}
           >
-            <Text style={[styles.speakBtn, { color: palette.tint }]}>🔊</Text>
+            <Text style={{ fontSize: 22, color: theme.color.accent }}>🔊</Text>
           </Pressable>
         )}
       </View>
-      <Text style={[styles.faceMeta, { color: palette.muted }]}>{word.partOfSpeech}</Text>
+      <Text
+        style={[
+          theme.text.tiny,
+          { color: theme.color.textMuted, marginTop: theme.space.sm },
+        ]}
+      >
+        {word.partOfSpeech}
+      </Text>
       {word.sourceSentence && (
-        <Text style={[styles.context, { color: palette.muted }]}>
+        <Text
+          style={[
+            theme.text.body,
+            {
+              color: theme.color.textMuted,
+              marginTop: theme.space.lg,
+              textAlign: 'center',
+              fontStyle: 'italic',
+              paddingHorizontal: theme.space.lg,
+            },
+          ]}
+        >
           “{word.sourceSentence}”
         </Text>
       )}
@@ -237,43 +312,20 @@ function CardFace({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  errorDetail: { fontSize: 12, marginTop: 4 },
-  empty: { fontSize: 20, fontWeight: '600' },
-  emptyHint: { fontSize: 14, marginTop: 8, textAlign: 'center' },
   topBar: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
-  topBarAdd: { fontSize: 15, fontWeight: '600' },
-  header: { alignItems: 'flex-end', marginBottom: 12 },
-  counter: { fontSize: 13, fontWeight: '500' },
   card: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hint: { position: 'absolute', bottom: 16, fontSize: 12 },
-  faceText: { fontSize: 28, fontWeight: '600', textAlign: 'center' },
-  faceMeta: { fontSize: 14, marginTop: 8 },
+  hint: { position: 'absolute', bottom: 14 },
+  spanishRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   backFace: { alignItems: 'center' },
-  context: {
-    fontSize: 15,
-    marginTop: 20,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
-  ratings: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  ratings: { flexDirection: 'row', gap: 6, marginTop: 12 },
   ratingBtn: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
   },
-  ratingText: { fontSize: 14, fontWeight: '600' },
-  ratingInterval: { fontSize: 11, marginTop: 4 },
-  removeBtn: { opacity: 0.7 },
-  spanishRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  speakBtn: { fontSize: 22 },
 });

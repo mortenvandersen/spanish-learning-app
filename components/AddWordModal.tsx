@@ -10,16 +10,13 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
 } from 'react-native';
-import { Colors } from '@/constants/Colors';
 import { useCaptureWord, useUserWords } from '@/hooks/useUserWords';
 import { lookup } from '@/services/dictionary';
 import { describeError } from '@/services/errors';
 import { speak } from '@/services/speech';
+import { useTheme, type Theme } from '@/theme/useTheme';
 import type { LookupResult } from '@/types';
-
-type Palette = (typeof Colors)['light' | 'dark'];
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -29,8 +26,7 @@ interface AddWordModalProps {
 }
 
 export function AddWordModal({ visible, onClose }: AddWordModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const theme = useTheme();
 
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -73,10 +69,6 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
     };
   }, [debounced]);
 
-  // Reset everything when the sheet closes. Intentionally depends only on
-  // `visible` — useMutation's result object identity isn't stable across
-  // renders, so including it would loop the effect (re-render -> new
-  // captureMutation ref -> effect re-runs -> setters -> re-render).
   useEffect(() => {
     if (!visible) {
       setQuery('');
@@ -110,8 +102,6 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
       },
       {
         onSuccess: () => {
-          // Clear for the next entry; keep the modal open so the user can
-          // add several words in a row without re-tapping the + button.
           setQuery('');
           setDebounced('');
           setResult(null);
@@ -128,70 +118,85 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
         style={styles.kbAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: theme.color.backdrop }]}
+          onPress={onClose}
+        >
           <Pressable
             style={[
               styles.sheet,
-              { backgroundColor: palette.background, borderTopColor: palette.border },
+              {
+                backgroundColor: theme.color.surfaceElevated,
+                borderTopLeftRadius: theme.radius.xl,
+                borderTopRightRadius: theme.radius.xl,
+              },
             ]}
             onPress={() => {
               /* absorb taps so the backdrop doesn't dismiss */
             }}
           >
-          <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: palette.text }]}>Add a word</Text>
-            <Pressable onPress={onClose} hitSlop={12}>
-              <Text style={[styles.close, { color: palette.muted }]}>✕</Text>
-            </Pressable>
-          </View>
-
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Spanish word"
-            placeholderTextColor={palette.muted}
-            autoFocus
-            autoCorrect={false}
-            autoCapitalize="none"
-            spellCheck={false}
-            style={[
-              styles.input,
-              {
-                color: palette.text,
-                borderColor: palette.border,
-                backgroundColor: scheme === 'dark' ? '#1f2123' : '#f5f5f5',
-              },
-            ]}
-          />
-
-          {isSearching && (
-            <View style={styles.statusRow}>
-              <ActivityIndicator />
+            <View style={styles.headerRow}>
+              <Text style={[theme.text.subtitle, { color: theme.color.text }]}>
+                Add a word
+              </Text>
+              <Pressable onPress={onClose} hitSlop={12}>
+                <Text style={[theme.text.heading, { color: theme.color.textMuted, fontSize: 20 }]}>
+                  ✕
+                </Text>
+              </Pressable>
             </View>
-          )}
 
-          {searchError && (
-            <Text style={[styles.statusText, { color: palette.muted }]}>{searchError}</Text>
-          )}
-
-          {showNotFound && (
-            <Text style={[styles.statusText, { color: palette.muted }]}>
-              Not in dictionary.
-            </Text>
-          )}
-
-          {result && (
-            <ResultCard
-              result={result}
-              palette={palette}
-              isCaptured={isCaptured}
-              captureLoading={captureMutation.isPending}
-              captureError={
-                captureMutation.error ? describeError(captureMutation.error) : null
-              }
-              onAdd={handleAdd}
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Spanish word"
+              placeholderTextColor={theme.color.textDim}
+              autoFocus
+              autoCorrect={false}
+              autoCapitalize="none"
+              spellCheck={false}
+              style={[
+                styles.input,
+                theme.text.body,
+                {
+                  color: theme.color.text,
+                  borderColor: theme.color.border,
+                  backgroundColor: theme.color.bg,
+                  borderRadius: theme.radius.md,
+                },
+              ]}
             />
-          )}
+
+            {isSearching && (
+              <View style={styles.statusRow}>
+                <ActivityIndicator color={theme.color.accent} />
+              </View>
+            )}
+
+            {searchError && (
+              <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 12 }]}>
+                {searchError}
+              </Text>
+            )}
+
+            {showNotFound && (
+              <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 12 }]}>
+                Not in dictionary.
+              </Text>
+            )}
+
+            {result && (
+              <ResultCard
+                result={result}
+                theme={theme}
+                isCaptured={isCaptured}
+                captureLoading={captureMutation.isPending}
+                captureError={
+                  captureMutation.error ? describeError(captureMutation.error) : null
+                }
+                onAdd={handleAdd}
+              />
+            )}
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>
@@ -201,14 +206,14 @@ export function AddWordModal({ visible, onClose }: AddWordModalProps) {
 
 function ResultCard({
   result,
-  palette,
+  theme,
   isCaptured,
   captureLoading,
   captureError,
   onAdd,
 }: {
   result: LookupResult;
-  palette: Palette;
+  theme: Theme;
   isCaptured: boolean;
   captureLoading: boolean;
   captureError: string | null;
@@ -217,44 +222,63 @@ function ResultCard({
   const { lemma, grammarFeatures, clitics } = result;
   const metaParts: string[] = [lemma.partOfSpeech];
   if (lemma.gender) metaParts.push(`(${lemma.gender})`);
-  if (grammarFeatures && grammarFeatures !== 'unknown') metaParts.push(`— ${grammarFeatures}`);
+  if (grammarFeatures && grammarFeatures !== 'unknown') metaParts.push(`· ${grammarFeatures}`);
 
   return (
     <ScrollView style={styles.result}>
       <View style={styles.lemmaRow}>
-        <Text style={[styles.lemma, { color: palette.text }]}>{lemma.lemma}</Text>
+        <Text style={[theme.text.heading, { color: theme.color.text }]}>{lemma.lemma}</Text>
         <Pressable onPress={() => speak(lemma.lemma)} hitSlop={10}>
-          <Text style={[styles.speak, { color: palette.tint }]}>🔊</Text>
+          <Text style={{ fontSize: 18, color: theme.color.accent }}>🔊</Text>
         </Pressable>
       </View>
-      <Text style={[styles.meta, { color: palette.muted }]}>{metaParts.join(' ')}</Text>
+      <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 4 }]}>
+        {metaParts.join(' ')}
+      </Text>
       {clitics && clitics.length > 0 && (
-        <Text style={[styles.clitics, { color: palette.muted }]}>
+        <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 2, fontStyle: 'italic' }]}>
           + {clitics.join(' + ')}
         </Text>
       )}
       {lemma.senses.slice(0, 5).map((sense, i) => (
-        <Text key={i} style={[styles.sense, { color: palette.text }]}>
+        <Text
+          key={i}
+          style={[
+            theme.text.body,
+            { color: theme.color.text, marginTop: i === 0 ? 12 : 8 },
+          ]}
+        >
           {i + 1}. {sense.definition}
         </Text>
       ))}
 
-      <View style={styles.actionRow}>
+      <View style={[styles.actionRow, { marginTop: theme.space.lg }]}>
         {isCaptured ? (
-          <Text style={[styles.inDeck, { color: palette.muted }]}>✓ in deck</Text>
+          <Text style={[theme.text.bodyEm, { color: theme.color.textMuted }]}>
+            ✓ in deck
+          </Text>
         ) : (
           <Pressable
             onPress={onAdd}
             disabled={captureLoading}
-            style={[styles.addBtn, { borderColor: palette.tint }]}
+            style={[
+              styles.addBtn,
+              {
+                backgroundColor: theme.color.accent,
+                borderRadius: theme.radius.md,
+                opacity: captureLoading ? 0.6 : 1,
+              },
+            ]}
           >
-            <Text style={{ color: palette.tint, fontWeight: '600' }}>
+            <Text style={[theme.text.bodyEm, { color: '#FFFFFF' }]}>
               {captureLoading ? 'Adding…' : 'Add to deck'}
             </Text>
           </Pressable>
         )}
         {captureError && (
-          <Text style={[styles.statusText, { color: palette.muted }]}>{captureError}</Text>
+          <Text style={[theme.text.tiny, { color: theme.color.textMuted }]}>
+            {captureError}
+          </Text>
         )}
       </View>
     </ScrollView>
@@ -263,17 +287,10 @@ function ResultCard({
 
 const styles = StyleSheet.create({
   kbAvoid: { flex: 1 },
-  backdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     padding: 20,
     paddingBottom: 32,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
     maxHeight: '80%',
     minHeight: 240,
   },
@@ -283,25 +300,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  title: { fontSize: 18, fontWeight: '600' },
-  close: { fontSize: 20 },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 16,
   },
   statusRow: { marginTop: 16, alignItems: 'center' },
-  statusText: { fontSize: 13, marginTop: 12 },
   result: { marginTop: 12, flexGrow: 0 },
   lemmaRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  lemma: { fontSize: 22, fontWeight: '600' },
-  speak: { fontSize: 18 },
-  meta: { fontSize: 13, marginTop: 4 },
-  clitics: { fontSize: 13, marginTop: 2, fontStyle: 'italic' },
-  sense: { fontSize: 14, marginTop: 8 },
-  actionRow: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  addBtn: { borderWidth: 1.5, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
-  inDeck: { fontSize: 14, fontWeight: '500' },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  addBtn: { paddingVertical: 10, paddingHorizontal: 16 },
 });
