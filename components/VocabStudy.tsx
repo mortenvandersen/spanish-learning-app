@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { AddWordModal } from '@/components/AddWordModal';
 import { StudyDashboard } from '@/components/StudyDashboard';
 import {
@@ -113,12 +120,18 @@ export function VocabStudy() {
             style={[
               styles.card,
               {
-                backgroundColor: theme.color.surface,
+                backgroundColor: theme.color.surfaceElevated,
                 borderRadius: theme.radius.lg,
+                borderColor: theme.color.border,
               },
             ]}
           >
-            <CardFace word={current} revealed={revealed} theme={theme} />
+            <ScrollView
+              contentContainerStyle={styles.cardContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <CardFace word={current} revealed={revealed} theme={theme} />
+            </ScrollView>
             {!revealed && (
               <Text
                 style={[
@@ -234,7 +247,10 @@ function CardFace({
     return (
       <View style={styles.spanishRow}>
         <Text
-          style={[theme.text.display, { color: theme.color.text, textAlign: 'center' }]}
+          style={[theme.text.display, { color: theme.color.text, textAlign: 'center', flexShrink: 1 }]}
+          adjustsFontSizeToFit
+          numberOfLines={10}
+          minimumFontScale={0.85}
         >
           {frontText}
         </Text>
@@ -256,7 +272,10 @@ function CardFace({
     <View style={styles.backFace}>
       <View style={styles.spanishRow}>
         <Text
-          style={[theme.text.display, { color: theme.color.text, textAlign: 'center' }]}
+          style={[theme.text.display, { color: theme.color.text, textAlign: 'center', flexShrink: 1 }]}
+          adjustsFontSizeToFit
+          numberOfLines={10}
+          minimumFontScale={0.85}
         >
           {backText}
         </Text>
@@ -282,6 +301,7 @@ function CardFace({
       </Text>
       {word.sourceSentence && (
         <Text
+          numberOfLines={10}
           style={[
             theme.text.body,
             {
@@ -306,6 +326,16 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
   card: {
     flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardContent: {
+    flexGrow: 1,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',

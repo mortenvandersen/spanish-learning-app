@@ -4,6 +4,8 @@ import {
   deleteUserPassage,
   getUserPassage,
   listUserPassages,
+  markUserPassageRead,
+  markUserPassageUnread,
   type CreateUserPassageInput,
 } from '@/services/userPassages';
 
@@ -39,6 +41,22 @@ export function useDeleteUserPassage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteUserPassage(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+export function useMarkUserPassageRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => markUserPassageRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+export function useMarkUserPassageUnread() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => markUserPassageUnread(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }

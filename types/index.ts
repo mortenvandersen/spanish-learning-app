@@ -35,6 +35,7 @@ export interface UserPassage {
   title: string | null;
   body: string;
   addedAt: string;
+  readAt: string | null;
 }
 
 export interface Concept {

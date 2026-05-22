@@ -46,8 +46,16 @@ export default function HomeScreen() {
     >
         <View style={styles.brand}>
           <Text style={styles.emoji}>🇪🇸</Text>
-          <Text style={[theme.text.display, { color: theme.color.text, marginTop: 8 }]}>
-            Spanish Learning
+          <Text
+            style={[
+              theme.text.display,
+              { color: theme.color.text, marginTop: 8, textAlign: 'center' },
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
+            Learn Spanish
           </Text>
         </View>
 
@@ -152,7 +160,7 @@ function SectionCard({
 
 const styles = StyleSheet.create({
   root: { flex: 1, paddingHorizontal: 16 },
-  brand: { alignItems: 'center', paddingVertical: 40 },
+  brand: { alignItems: 'center', alignSelf: 'stretch', paddingVertical: 40 },
   emoji: { fontSize: 56 },
   list: { gap: 12 },
   card: {

@@ -55,6 +55,7 @@ export default function RootLayout() {
             },
             headerTintColor: theme.color.text,
             headerShadowVisible: false,
+            headerBackTitle: 'Back',
             contentStyle: { backgroundColor: theme.color.bg },
           }}
         >
@@ -63,6 +64,8 @@ export default function RootLayout() {
           <Stack.Screen name="concept/[id]" options={{ title: '' }} />
           <Stack.Screen name="grammar/[slug]" options={{ title: '' }} />
           <Stack.Screen name="lesson/[slug]" options={{ title: '' }} />
+          <Stack.Screen name="library/new" options={{ title: '' }} />
+          <Stack.Screen name="library/[id]" options={{ title: '' }} />
         </Stack>
         <StatusBar style="auto" />
       </QueryClientProvider>

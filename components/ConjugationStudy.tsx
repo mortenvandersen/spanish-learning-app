@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -188,12 +189,18 @@ export function ConjugationStudy() {
             style={[
               styles.card,
               {
-                backgroundColor: theme.color.surface,
+                backgroundColor: theme.color.surfaceElevated,
                 borderRadius: theme.radius.lg,
+                borderColor: theme.color.border,
               },
             ]}
           >
-            <CardFace card={current} revealed={revealed} theme={theme} />
+            <ScrollView
+              contentContainerStyle={styles.cardContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <CardFace card={current} revealed={revealed} theme={theme} />
+            </ScrollView>
             {!revealed && (
               <Text
                 style={[
@@ -303,6 +310,9 @@ function CardFace({
   if (!revealed) {
     return (
       <Text
+        adjustsFontSizeToFit
+        numberOfLines={12}
+        minimumFontScale={0.85}
         style={[
           theme.text.heading,
           { color: theme.color.text, textAlign: 'center', lineHeight: 28 },
@@ -315,6 +325,9 @@ function CardFace({
   return (
     <View style={styles.backFace}>
       <Text
+        adjustsFontSizeToFit
+        numberOfLines={12}
+        minimumFontScale={0.85}
         style={[
           theme.text.heading,
           { color: theme.color.text, textAlign: 'center', lineHeight: 28 },
@@ -378,6 +391,16 @@ const styles = StyleSheet.create({
   releaseBtn: { paddingHorizontal: 14, paddingVertical: 8 },
   card: {
     flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardContent: {
+    flexGrow: 1,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',

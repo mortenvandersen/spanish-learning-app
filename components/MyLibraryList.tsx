@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,11 +11,21 @@ import {
 } from 'react-native';
 import {
   useDeleteUserPassage,
+  useMarkUserPassageRead,
+  useMarkUserPassageUnread,
   useUserPassages,
 } from '@/hooks/useUserPassages';
 import { describeError } from '@/services/errors';
 import { useTheme, type Theme } from '@/theme/useTheme';
 import type { UserPassage } from '@/types';
+
+type FilterMode = 'all' | 'unread' | 'read';
+
+const FILTER_OPTIONS: { label: string; value: FilterMode }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Unread', value: 'unread' },
+  { label: 'Read', value: 'read' },
+];
 
 interface MyLibraryListProps {
   onAddPress: () => void;
@@ -25,8 +36,20 @@ export function MyLibraryList({ onAddPress }: MyLibraryListProps) {
   const router = useRouter();
   const { data, isLoading, error } = useUserPassages();
   const deleteMutation = useDeleteUserPassage();
+  const markRead = useMarkUserPassageRead();
+  const markUnread = useMarkUserPassageUnread();
+  const [filter, setFilter] = useState<FilterMode>('unread');
 
-  const handleDelete = (passage: UserPassage) => {
+  const visible = useMemo(() => {
+    if (!data) return [];
+    return data.filter(p => {
+      if (filter === 'all') return true;
+      const isRead = p.readAt !== null;
+      return filter === 'read' ? isRead : !isRead;
+    });
+  }, [data, filter]);
+
+  const confirmDelete = (passage: UserPassage) => {
     Alert.alert(
       'Delete passage?',
       passage.title ?? passage.body.slice(0, 40),
@@ -62,48 +85,93 @@ export function MyLibraryList({ onAddPress }: MyLibraryListProps) {
     );
   }
 
-  const passages = data ?? [];
+  const isEmptyTotal = (data ?? []).length === 0;
 
   return (
     <View style={styles.root}>
-      <Pressable
-        onPress={onAddPress}
-        style={[
-          styles.addButton,
-          {
-            backgroundColor: theme.color.accent,
-            borderRadius: theme.radius.lg,
-          },
-        ]}
-      >
-        <Text
+      <View style={styles.controls}>
+        <View style={styles.pillGroup}>
+          {FILTER_OPTIONS.map(opt => {
+            const selected = opt.value === filter;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => setFilter(opt.value)}
+                style={[
+                  styles.pill,
+                  {
+                    backgroundColor: selected ? theme.color.accent : theme.color.surface,
+                    borderRadius: theme.radius.full,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    theme.text.tiny,
+                    {
+                      color: selected ? '#FFFFFF' : theme.color.text,
+                      fontFamily: theme.fontFamily.sansMedium,
+                    },
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Pressable
+          onPress={onAddPress}
           style={[
-            theme.text.body,
-            { color: '#FFFFFF', fontFamily: theme.fontFamily.sansMedium },
+            styles.addButton,
+            {
+              backgroundColor: theme.color.accent,
+              borderRadius: theme.radius.md,
+            },
           ]}
         >
-          + Add passage
-        </Text>
-      </Pressable>
+          <Text
+            style={[
+              theme.text.body,
+              { color: '#FFFFFF', fontFamily: theme.fontFamily.sansMedium },
+            ]}
+          >
+            + Add passage
+          </Text>
+        </Pressable>
+      </View>
 
-      {passages.length === 0 ? (
+      {isEmptyTotal ? (
         <View style={styles.center}>
           <Text style={[theme.text.body, { color: theme.color.textMuted, textAlign: 'center' }]}>
             Paste any Spanish text to build your library.
           </Text>
         </View>
+      ) : visible.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={[theme.text.body, { color: theme.color.textMuted, textAlign: 'center' }]}>
+            {filter === 'unread'
+              ? 'Nothing unread. Switch filter to see all.'
+              : 'Nothing marked read yet.'}
+          </Text>
+        </View>
       ) : (
         <FlatList
-          data={passages}
+          data={visible}
           keyExtractor={p => p.id}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           renderItem={({ item }) => (
             <LibraryRow
               passage={item}
+              isRead={item.readAt !== null}
               theme={theme}
               onOpen={() => router.push(`/library/${item.id}`)}
-              onDelete={() => handleDelete(item)}
+              onToggle={() => {
+                if (item.readAt) markUnread.mutate(item.id);
+                else markRead.mutate(item.id);
+              }}
+              onLongPress={() => confirmDelete(item)}
             />
           )}
         />
@@ -114,14 +182,18 @@ export function MyLibraryList({ onAddPress }: MyLibraryListProps) {
 
 function LibraryRow({
   passage,
+  isRead,
   theme,
   onOpen,
-  onDelete,
+  onToggle,
+  onLongPress,
 }: {
   passage: UserPassage;
+  isRead: boolean;
   theme: Theme;
   onOpen: () => void;
-  onDelete: () => void;
+  onToggle: () => void;
+  onLongPress: () => void;
 }) {
   const title = passage.title ?? deriveTitle(passage.body);
   const preview = passage.body.length > 80
@@ -140,10 +212,18 @@ function LibraryRow({
     >
       <Pressable
         onPress={onOpen}
+        onLongPress={onLongPress}
+        delayLongPress={400}
         style={({ pressed }) => [styles.rowBody, pressed && styles.rowPressed]}
       >
         <Text
-          style={[theme.text.subtitle, { color: theme.color.text }]}
+          style={[
+            theme.text.subtitle,
+            {
+              color: isRead ? theme.color.textMuted : theme.color.text,
+              textDecorationLine: isRead ? 'line-through' : 'none',
+            },
+          ]}
           numberOfLines={1}
         >
           {title}
@@ -159,11 +239,18 @@ function LibraryRow({
         </Text>
       </Pressable>
       <Pressable
-        onPress={onDelete}
+        onPress={onToggle}
         hitSlop={8}
-        style={[styles.deleteCell, { borderLeftColor: theme.color.border }]}
+        style={[styles.checkbox, { borderLeftColor: theme.color.border }]}
       >
-        <Text style={{ fontSize: 18, color: theme.color.textDim }}>×</Text>
+        <Text
+          style={{
+            fontSize: 22,
+            color: isRead ? theme.color.accent : theme.color.textDim,
+          }}
+        >
+          {isRead ? '✓' : '○'}
+        </Text>
       </Pressable>
     </View>
   );
@@ -178,10 +265,10 @@ function deriveTitle(body: string): string {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
+  controls: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8, gap: 8 },
+  pillGroup: { flexDirection: 'row', gap: 6 },
+  pill: { paddingHorizontal: 12, paddingVertical: 6 },
   addButton: {
-    marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 8,
     paddingVertical: 12,
     alignItems: 'center',
   },
@@ -190,8 +277,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'stretch', overflow: 'hidden' },
   rowBody: { flex: 1, paddingVertical: 12, paddingHorizontal: 16 },
   rowPressed: { opacity: 0.6 },
-  deleteCell: {
-    width: 44,
+  checkbox: {
+    width: 52,
     alignItems: 'center',
     justifyContent: 'center',
     borderLeftWidth: StyleSheet.hairlineWidth,

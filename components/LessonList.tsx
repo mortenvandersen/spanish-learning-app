@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import {
   useMarkLessonDone,
@@ -26,6 +26,16 @@ export function LessonList() {
   const markUndone = useMarkLessonUndone();
 
   const doneSet = useMemo(() => new Set(readSlugs ?? []), [readSlugs]);
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+
+  const toggleUnit = (unit: number) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(unit)) next.delete(unit);
+      else next.add(unit);
+      return next;
+    });
+  };
 
   const sections = useMemo<Section[]>(() => {
     return getLessonsByUnit().map(u => ({
@@ -34,9 +44,10 @@ export function LessonList() {
       availableCount: u.lessons.filter(l => l.available).length,
       totalCount: u.lessons.length,
       doneCount: u.lessons.filter(l => doneSet.has(l.slug)).length,
-      data: u.lessons,
+      // Hide items when collapsed so SectionList renders only the header.
+      data: expanded.has(u.unit) ? u.lessons : [],
     }));
-  }, [doneSet]);
+  }, [doneSet, expanded]);
 
   return (
     <SectionList
@@ -45,26 +56,53 @@ export function LessonList() {
       stickySectionHeadersEnabled={false}
       contentContainerStyle={styles.list}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
-      renderSectionHeader={({ section }) => (
-        <View style={styles.sectionHeader}>
-          <Text
-            style={[
-              theme.text.caption,
-              { color: theme.color.textMuted },
+      renderSectionHeader={({ section }) => {
+        const isExpanded = expanded.has(section.unit);
+        return (
+          <Pressable
+            onPress={() => toggleUnit(section.unit)}
+            style={({ pressed }) => [
+              styles.sectionHeader,
+              {
+                backgroundColor: theme.color.surface,
+                borderRadius: theme.radius.md,
+                opacity: pressed ? 0.7 : 1,
+              },
             ]}
           >
-            {section.title}
-          </Text>
-          <Text
-            style={[
-              theme.text.caption,
-              { color: theme.color.textMuted },
-            ]}
-          >
-            {section.doneCount}/{section.availableCount} done · {section.availableCount}/{section.totalCount}
-          </Text>
-        </View>
-      )}
+            <View style={styles.sectionHeaderLeft}>
+              <Text
+                style={[
+                  theme.text.tiny,
+                  {
+                    color: theme.color.textMuted,
+                    fontFamily: theme.fontFamily.sansSemibold,
+                    width: 16,
+                  },
+                ]}
+              >
+                {isExpanded ? '▾' : '▸'}
+              </Text>
+              <Text
+                style={[
+                  theme.text.caption,
+                  { color: theme.color.textMuted },
+                ]}
+              >
+                {section.title}
+              </Text>
+            </View>
+            <Text
+              style={[
+                theme.text.caption,
+                { color: theme.color.textMuted },
+              ]}
+            >
+              {section.doneCount}/{section.availableCount} done · {section.availableCount}/{section.totalCount}
+            </Text>
+          </Pressable>
+        );
+      }}
       SectionSeparatorComponent={({ leadingItem }) =>
         leadingItem ? <View style={styles.sectionGap} /> : null
       }
@@ -170,8 +208,15 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    paddingVertical: 8,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   sectionGap: { height: 12 },
   separator: { height: 6 },

@@ -22,7 +22,6 @@ import type { Passage } from '@/types';
 
 type ReadMode = 'featured' | 'library';
 type FilterMode = 'all' | 'unread' | 'read';
-type SortMode = 'order' | 'level';
 
 const MODE_OPTIONS: { label: string; value: ReadMode }[] = [
   { label: 'Featured', value: 'featured' },
@@ -34,13 +33,6 @@ const FILTER_OPTIONS: { label: string; value: FilterMode }[] = [
   { label: 'Unread', value: 'unread' },
   { label: 'Read', value: 'read' },
 ];
-
-const SORT_OPTIONS: { label: string; value: SortMode }[] = [
-  { label: 'Order', value: 'order' },
-  { label: 'Level', value: 'level' },
-];
-
-const LEVEL_ORDER: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5 };
 
 export default function ReadScreen() {
   const theme = useTheme();
@@ -55,7 +47,6 @@ export default function ReadScreen() {
   const lastMutationError: unknown = markRead.error ?? markUnread.error;
 
   const [filter, setFilter] = useState<FilterMode>('unread');
-  const [sort, setSort] = useState<SortMode>('order');
 
   const visiblePassages = useMemo(() => {
     if (!data) return [];
@@ -64,21 +55,14 @@ export default function ReadScreen() {
       const isRead = readIds.has(p.id);
       return filter === 'read' ? isRead : !isRead;
     });
-    return [...filtered].sort((a, b) => {
-      if (sort === 'level') {
-        const la = LEVEL_ORDER[a.level] ?? 99;
-        const lb = LEVEL_ORDER[b.level] ?? 99;
-        if (la !== lb) return la - lb;
-      }
-      return a.createdAt.localeCompare(b.createdAt);
-    });
-  }, [data, filter, sort, readIds]);
+    return [...filtered].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }, [data, filter, readIds]);
 
   if (mode === 'library') {
     return (
       <SafeAreaView edges={['left', 'right']} style={[styles.root, { backgroundColor: theme.color.bg }]}>
         <View style={styles.controls}>
-          <PillGroup options={MODE_OPTIONS} value={mode} onChange={setMode} theme={theme} />
+          <ModeSwitch mode={mode} setMode={setMode} theme={theme} />
         </View>
         <MyLibraryList onAddPress={() => router.push('/library/new')} />
       </SafeAreaView>
@@ -119,17 +103,11 @@ export default function ReadScreen() {
   return (
     <SafeAreaView edges={['left', 'right']} style={[styles.root, { backgroundColor: theme.color.bg }]}>
       <View style={styles.controls}>
-        <PillGroup options={MODE_OPTIONS} value={mode} onChange={setMode} theme={theme} />
+        <ModeSwitch mode={mode} setMode={setMode} theme={theme} />
         <PillGroup
           options={FILTER_OPTIONS}
           value={filter}
           onChange={setFilter}
-          theme={theme}
-        />
-        <PillGroup
-          options={SORT_OPTIONS}
-          value={sort}
-          onChange={setSort}
           theme={theme}
         />
         {lastMutationError ? (
@@ -242,6 +220,49 @@ function PassageRow({
   );
 }
 
+function ModeSwitch({
+  mode,
+  setMode,
+  theme,
+}: {
+  mode: ReadMode;
+  setMode: (m: ReadMode) => void;
+  theme: Theme;
+}) {
+  return (
+    <View style={styles.modeRow}>
+      {MODE_OPTIONS.map(opt => {
+        const selected = opt.value === mode;
+        return (
+          <Pressable
+            key={opt.value}
+            onPress={() => setMode(opt.value)}
+            style={[
+              styles.modeButton,
+              {
+                backgroundColor: selected ? theme.color.accent : theme.color.surface,
+                borderRadius: theme.radius.md,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                theme.text.bodyEm,
+                {
+                  color: selected ? '#FFFFFF' : theme.color.text,
+                  textAlign: 'center',
+                },
+              ]}
+            >
+              {opt.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function PillGroup<T extends string>({
   options,
   value,
@@ -290,7 +311,9 @@ function PillGroup<T extends string>({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  controls: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 },
+  controls: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 10 },
+  modeRow: { flexDirection: 'row', gap: 8 },
+  modeButton: { flex: 1, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   pillGroup: { flexDirection: 'row', gap: 6 },
   pill: { paddingHorizontal: 12, paddingVertical: 6 },
   list: { padding: 16 },
