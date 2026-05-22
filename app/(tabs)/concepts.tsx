@@ -40,24 +40,19 @@ const SORT_OPTIONS: { label: string; value: SortMode }[] = [
   { label: 'Recent', value: 'recent' },
 ];
 
+// The Concepts/Lessons toggle is hidden while the Concepts Supabase table is
+// empty — only Lessons has content. Restore the toggle (TOP_OPTIONS,
+// useState<TopMode>, PillGroup, ConceptsBody render) when concepts are
+// populated. ConceptsBody and its types are kept below for that.
 export default function ConceptsScreen() {
   const theme = useTheme();
-  const [topMode, setTopMode] = useState<TopMode>('concepts');
 
   return (
     <SafeAreaView
       edges={['left', 'right']}
       style={[styles.root, { backgroundColor: theme.color.bg }]}
     >
-      <View style={styles.topToggle}>
-        <PillGroup
-          options={TOP_OPTIONS}
-          value={topMode}
-          onChange={setTopMode}
-          theme={theme}
-        />
-      </View>
-      {topMode === 'concepts' ? <ConceptsBody /> : <LessonList />}
+      <LessonList />
     </SafeAreaView>
   );
 }

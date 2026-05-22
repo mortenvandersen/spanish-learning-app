@@ -52,7 +52,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="concepts"
         options={{
-          title: 'Concepts',
+          title: 'Lessons',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons name={focused ? 'bulb' : 'bulb-outline'} size={size} color={color} />
           ),
