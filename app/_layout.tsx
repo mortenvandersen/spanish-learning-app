@@ -62,6 +62,7 @@ export default function RootLayout() {
           <Stack.Screen name="reader/[id]" options={{ title: '' }} />
           <Stack.Screen name="concept/[id]" options={{ title: '' }} />
           <Stack.Screen name="grammar/[slug]" options={{ title: '' }} />
+          <Stack.Screen name="lesson/[slug]" options={{ title: '' }} />
         </Stack>
         <StatusBar style="auto" />
       </QueryClientProvider>

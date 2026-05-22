@@ -12,6 +12,7 @@
  */
 
 (function () {
+ try {
   const article =
     document.querySelector(
       'article, main, .entry-content, .post-content, [role="main"], #content',
@@ -94,6 +95,22 @@
         return '\n\n> ' + inner().trim().replace(/\n/g, '\n> ') + '\n\n';
       case 'hr':
         return '\n\n---\n\n';
+      case 'dl': {
+        const pairs = [];
+        let term = null;
+        for (const child of Array.from(node.children)) {
+          const ct = child.tagName.toLowerCase();
+          if (ct === 'dt') {
+            term = Array.from(child.childNodes).map(md).join('').trim()
+              .replace(/^\*+|\*+$/g, '');
+          } else if (ct === 'dd') {
+            const def = Array.from(child.childNodes).map(md).join('').trim();
+            pairs.push('- **' + (term || '') + '** — ' + def);
+            term = null;
+          }
+        }
+        return '\n\n' + pairs.join('\n') + '\n\n';
+      }
       case 'table': {
         const rows = Array.from(node.querySelectorAll('tr'));
         if (!rows.length) return '';
@@ -124,11 +141,16 @@
     body = body.slice(firstH1);
   }
 
-  // Strip known footer chrome from studyspanish.com-style pages.
+  // Strip known footer chrome from studyspanish.com-style pages, then
+  // remove any orphan empty bullets and re-collapse blank lines.
   body = body
-    .replace(/^\s*-\s*\[(?:Print|Email)[^\]]*\]\([^)]*\)\s*$/gm, '')
+    .replace(/^\s*-\s*\[(?:Print|Email)[^\n]*$/gm, '')
     .replace(/^\s*Powered By[^\n]*$/gm, '')
-    .replace(/^\s*-\s*$/gm, '') // orphan list bullets
+    .replace(/^\s*-\s*$/gm, '')
+    .replace(
+      /\*\*Notes:\*\*\s*\n+1\.\s*The written lesson is below\.\s*\n2\.\s*Links to quizzes[^\n]*\n+/,
+      '',
+    )
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -154,4 +176,7 @@
     URL.revokeObjectURL(url);
     a.remove();
   }, 100);
+ } catch (err) {
+   alert('Lesson scraper failed:\n\n' + (err && err.stack || err));
+ }
 })();

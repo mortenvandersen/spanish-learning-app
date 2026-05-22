@@ -21,21 +21,52 @@ SRC = os.path.join(HERE, 'lesson-scraper-bookmarklet.js')
 
 
 def minify(src: str) -> str:
-    # Remove /* … */ block comments.
-    src = re.sub(r'/\*.*?\*/', '', src, flags=re.DOTALL)
-    # Remove // line comments (very conservative: only when // is at the start
-    # of a token; avoids stripping URLs inside string literals).
-    src = re.sub(r'(?m)^\s*//.*$', '', src)
-    # Collapse runs of whitespace that aren't inside string literals.
-    # Cheap heuristic: scan char by char, track quote state.
-    out = []
-    quote = None
+    """
+    Single-pass scanner: tracks string and regex-literal state so that //
+    comments are only stripped when they appear in real code positions.
+    Block comments and inline whitespace runs are collapsed at the same
+    time.
+
+    Regex literals are detected with the conventional "previous non-space
+    token would expect an expression" heuristic — good enough for our
+    bookmarklet source.
+    """
+    out: list[str] = []
+    quote: str | None = None
+    in_regex = False
+    in_block_comment = False
+    last_significant = ''  # tracks the last non-space, non-comment char emitted
     i = 0
-    while i < len(src):
+    n = len(src)
+
+    # Tokens after which a '/' would start a regex literal rather than be a
+    # division. Mostly mirrors esprima's lookbehind set; good enough here.
+    REGEX_PRECEDERS = set('([{,;=!&|?:+-*~^%<>') | {''}
+    REGEX_PRECEDER_WORDS = {'return', 'typeof', 'in', 'of', 'instanceof', 'new', 'delete', 'void'}
+
+    def last_word() -> str:
+        # find the trailing identifier of `out`
+        j = len(out) - 1
+        word = []
+        while j >= 0 and (out[j].isalnum() or out[j] == '_'):
+            word.append(out[j])
+            j -= 1
+        return ''.join(reversed(word))
+
+    while i < n:
         c = src[i]
+
+        if in_block_comment:
+            if c == '*' and i + 1 < n and src[i + 1] == '/':
+                in_block_comment = False
+                i += 2
+                continue
+            i += 1
+            continue
+
         if quote:
             out.append(c)
-            if c == '\\' and i + 1 < len(src):
+            if c == '\\' and i + 1 < n:
                 out.append(src[i + 1])
                 i += 2
                 continue
@@ -43,20 +74,83 @@ def minify(src: str) -> str:
                 quote = None
             i += 1
             continue
+
+        if in_regex:
+            out.append(c)
+            if c == '\\' and i + 1 < n:
+                out.append(src[i + 1])
+                i += 2
+                continue
+            if c == '/':
+                in_regex = False
+                # consume any flags
+                i += 1
+                while i < n and src[i].isalpha():
+                    out.append(src[i])
+                    i += 1
+                continue
+            if c == '[':
+                # character class; scan until ]
+                i += 1
+                while i < n:
+                    out.append(src[i])
+                    if src[i] == '\\' and i + 1 < n:
+                        out.append(src[i + 1])
+                        i += 2
+                        continue
+                    if src[i] == ']':
+                        i += 1
+                        break
+                    i += 1
+                continue
+            i += 1
+            continue
+
+        # Outside strings, regex, and block comments.
+        if c == '/' and i + 1 < n:
+            nxt = src[i + 1]
+            if nxt == '/':
+                # line comment — skip to end of line
+                while i < n and src[i] != '\n':
+                    i += 1
+                continue
+            if nxt == '*':
+                in_block_comment = True
+                i += 2
+                continue
+            # Disambiguate regex vs division. If the last significant char
+            # suggests an expression position, treat as regex.
+            prev = last_significant
+            if prev in REGEX_PRECEDERS or last_word() in REGEX_PRECEDER_WORDS:
+                in_regex = True
+                out.append(c)
+                i += 1
+                continue
+            # Otherwise it's division.
+            out.append(c)
+            last_significant = c
+            i += 1
+            continue
+
         if c in ('"', "'", '`'):
             quote = c
             out.append(c)
+            last_significant = c
             i += 1
             continue
+
         if c.isspace():
-            # collapse whitespace to a single space
+            # collapse to a single space
             out.append(' ')
-            while i + 1 < len(src) and src[i + 1].isspace():
+            while i + 1 < n and src[i + 1].isspace():
                 i += 1
             i += 1
             continue
+
         out.append(c)
+        last_significant = c
         i += 1
+
     return ''.join(out).strip()
 
 

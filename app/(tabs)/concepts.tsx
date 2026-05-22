@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LessonList } from '@/components/LessonList';
 import {
   useConcepts,
   useMarkConceptDone,
@@ -19,8 +20,14 @@ import { describeError } from '@/services/errors';
 import { useTheme, type Theme } from '@/theme/useTheme';
 import type { Concept } from '@/types';
 
+type TopMode = 'concepts' | 'lessons';
 type FilterMode = 'all' | 'todo' | 'done';
 type SortMode = 'order' | 'recent';
+
+const TOP_OPTIONS: { label: string; value: TopMode }[] = [
+  { label: 'Concepts', value: 'concepts' },
+  { label: 'Lessons', value: 'lessons' },
+];
 
 const FILTER_OPTIONS: { label: string; value: FilterMode }[] = [
   { label: 'All', value: 'all' },
@@ -34,6 +41,28 @@ const SORT_OPTIONS: { label: string; value: SortMode }[] = [
 ];
 
 export default function ConceptsScreen() {
+  const theme = useTheme();
+  const [topMode, setTopMode] = useState<TopMode>('concepts');
+
+  return (
+    <SafeAreaView
+      edges={['left', 'right']}
+      style={[styles.root, { backgroundColor: theme.color.bg }]}
+    >
+      <View style={styles.topToggle}>
+        <PillGroup
+          options={TOP_OPTIONS}
+          value={topMode}
+          onChange={setTopMode}
+          theme={theme}
+        />
+      </View>
+      {topMode === 'concepts' ? <ConceptsBody /> : <LessonList />}
+    </SafeAreaView>
+  );
+}
+
+function ConceptsBody() {
   const theme = useTheme();
   const router = useRouter();
   const { data, isLoading, error } = useConcepts();
@@ -62,7 +91,7 @@ export default function ConceptsScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+      <View style={styles.center}>
         <ActivityIndicator color={theme.color.accent} />
       </View>
     );
@@ -70,7 +99,7 @@ export default function ConceptsScreen() {
 
   if (error) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+      <View style={styles.center}>
         <Text style={[theme.text.body, { color: theme.color.text }]}>
           Failed to load concepts.
         </Text>
@@ -83,7 +112,7 @@ export default function ConceptsScreen() {
 
   if (!data || data.length === 0) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+      <View style={styles.center}>
         <Text style={[theme.text.body, { color: theme.color.textMuted, textAlign: 'center' }]}>
           No concepts yet.{'\n'}Load some via the SQL editor.
         </Text>
@@ -92,10 +121,7 @@ export default function ConceptsScreen() {
   }
 
   return (
-    <SafeAreaView
-      edges={['left', 'right']}
-      style={[styles.root, { backgroundColor: theme.color.bg }]}
-    >
+    <>
       <View style={styles.controls}>
         <PillGroup
           options={FILTER_OPTIONS}
@@ -149,7 +175,7 @@ export default function ConceptsScreen() {
           )}
         />
       )}
-    </SafeAreaView>
+    </>
   );
 }
 
@@ -278,7 +304,8 @@ function PillGroup<T extends string>({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  controls: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 },
+  topToggle: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
+  controls: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, gap: 8 },
   pillGroup: { flexDirection: 'row', gap: 6 },
   pill: { paddingHorizontal: 12, paddingVertical: 6 },
   list: { padding: 16 },

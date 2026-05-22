@@ -192,6 +192,11 @@ Lemma-first is what disambiguates noun/verb collisions: `pueblo` is both a noun 
 - **Adding a grammar page:** create `content/grammar/<slug>.md` with frontmatter (`title`, `level`, `summary`) and body. The Grammar tab auto-discovers them.
 - **Adding a passage:** during v1, add directly via Supabase dashboard. A small in-app admin screen for adding passages is a nice-to-have but not required.
 - **Updating the dictionary:** rebuild from the data-pipeline project, drop the resulting `spanish-dictionary.db` into `content/dictionary/`, bump the asset version so devices re-copy on next launch.
+- **Adding a lesson (studyspanish.com scrape):**
+  1. If the bookmarklet source (`scripts/lesson-scraper-bookmarklet.js`) changed, run `python scripts/build-bookmarklet.py`, **delete the old browser bookmark entirely**, and create a fresh one with the new `javascript:…` URL. Editing the URL of an existing bookmark sometimes mangles long values in Chrome/Edge.
+  2. Open the lesson page on studyspanish.com and click the bookmark. A `<slug>.md` file downloads — move it into `content/lessons/` (filename should already be `lessons-<slug>.md`; rename if not).
+  3. Run `python scripts/build-lessons-index.py` to regenerate `services/lessons.generated.ts`. The app picks the new lesson up automatically; no Supabase changes needed.
+  4. The full 108-lesson unit structure lives in `services/lessons.ts`. Lessons that aren't yet captured appear dimmed in the in-app list — captured ones are tappable.
 
 ---
 

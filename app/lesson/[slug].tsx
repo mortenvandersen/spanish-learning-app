@@ -1,7 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Linking,
   Pressable,
   ScrollView,
@@ -14,50 +13,37 @@ import type { TextStyle, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddWordModal } from '@/components/AddWordModal';
 import {
-  useConcept,
-  useMarkConceptDone,
-  useMarkConceptUndone,
-  useReadConceptIds,
-} from '@/hooks/useConcepts';
+  useMarkLessonDone,
+  useMarkLessonUndone,
+  useReadLessonSlugs,
+} from '@/hooks/useLessonReads';
 import { describeError } from '@/services/errors';
+import { getLesson, getLessonMeta } from '@/services/lessons';
 import { useTheme, type Theme } from '@/theme/useTheme';
 
-export default function ConceptDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+export default function LessonDetailScreen() {
+  const { slug } = useLocalSearchParams<{ slug: string }>();
   const theme = useTheme();
-  const { data: concept, isLoading, error } = useConcept(id);
-  const { data: readIdsList } = useReadConceptIds();
-  const markDone = useMarkConceptDone();
-  const markUndone = useMarkConceptUndone();
+  const lesson = slug ? getLesson(slug) : undefined;
+  const meta = slug ? getLessonMeta(slug) : undefined;
+  const markdownStyles = useMemo(() => buildMarkdownStyles(theme), [theme]);
+  const { data: readSlugs } = useReadLessonSlugs();
+  const markDone = useMarkLessonDone();
+  const markUndone = useMarkLessonUndone();
+  const isDone = !!slug && (readSlugs ?? []).includes(slug);
   const [addOpen, setAddOpen] = useState(false);
 
-  const readIds = useMemo(() => new Set(readIdsList ?? []), [readIdsList]);
-  const markdownStyles = useMemo(() => buildMarkdownStyles(theme), [theme]);
-
-  if (isLoading) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
-        <ActivityIndicator color={theme.color.accent} />
-      </View>
-    );
-  }
-
-  if (error || !concept) {
+  if (!lesson || !meta) {
     return (
       <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
         <Text style={[theme.text.body, { color: theme.color.text }]}>
-          Failed to load concept.
+          Lesson not found.
         </Text>
-        {error && (
-          <Text style={[theme.text.tiny, { color: theme.color.textMuted, marginTop: 4 }]}>
-            {describeError(error)}
-          </Text>
-        )}
       </View>
     );
   }
 
-  const isDone = readIds.has(concept.id);
+  const body = stripDuplicateTitle(lesson.body, lesson.title);
 
   return (
     <SafeAreaView
@@ -66,52 +52,49 @@ export default function ConceptDetailScreen() {
     >
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[theme.text.heading, { color: theme.color.text }]}>
-              {concept.title}
-            </Text>
-          </View>
+          <Text
+            style={[
+              theme.text.caption,
+              { color: theme.color.textMuted },
+            ]}
+          >
+            Lesson {meta.number} · Unit {meta.unit}
+          </Text>
           <Pressable onPress={() => setAddOpen(true)} hitSlop={10}>
             <Text style={[theme.text.bodyEm, { color: theme.color.accent }]}>
               + Add card
             </Text>
           </Pressable>
         </View>
-
-        {(concept.sourceEpisode || concept.sourceUrl) && (
-          <View style={styles.sourceRow}>
-            {concept.sourceEpisode && (
-              <Text style={[theme.text.tiny, { color: theme.color.textMuted }]}>
-                {concept.sourceEpisode}
-              </Text>
-            )}
-            {concept.sourceUrl && (
-              <Pressable onPress={() => Linking.openURL(concept.sourceUrl as string)}>
-                <Text style={[theme.text.tiny, { color: theme.color.accent }]}>
-                  Source ↗
-                </Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-
         <Text
           style={[
-            theme.text.body,
-            { color: theme.color.textMuted, marginTop: theme.space.md, fontStyle: 'italic' },
+            theme.text.heading,
+            { color: theme.color.text, marginTop: theme.space.xs },
           ]}
         >
-          {concept.summary}
+          {lesson.title}
         </Text>
 
+        {lesson.sourceUrl && (
+          <Pressable
+            onPress={() => Linking.openURL(lesson.sourceUrl)}
+            style={{ marginTop: theme.space.sm }}
+          >
+            <Text style={[theme.text.tiny, { color: theme.color.accent }]}>
+              studyspanish.com ↗
+            </Text>
+          </Pressable>
+        )}
+
         <View style={{ marginTop: theme.space.xl }}>
-          <Markdown style={markdownStyles}>{concept.body}</Markdown>
+          <Markdown style={markdownStyles}>{body}</Markdown>
         </View>
 
         <Pressable
           onPress={() => {
-            if (isDone) markUndone.mutate(concept.id);
-            else markDone.mutate(concept.id);
+            if (!slug) return;
+            if (isDone) markUndone.mutate(slug);
+            else markDone.mutate(slug);
           }}
           style={[
             styles.doneBtn,
@@ -131,6 +114,21 @@ export default function ConceptDetailScreen() {
             {isDone ? '✓ Marked done — undo' : 'Mark done'}
           </Text>
         </Pressable>
+
+        {(markDone.error || markUndone.error) && (
+          <Text
+            style={[
+              theme.text.tiny,
+              {
+                color: theme.color.danger,
+                marginTop: theme.space.sm,
+                textAlign: 'center',
+              },
+            ]}
+          >
+            {describeError(markDone.error ?? markUndone.error)}
+          </Text>
+        )}
       </ScrollView>
 
       <AddWordModal visible={addOpen} onClose={() => setAddOpen(false)} />
@@ -138,15 +136,25 @@ export default function ConceptDetailScreen() {
   );
 }
 
+function stripDuplicateTitle(body: string, title: string): string {
+  // The scraped body usually starts with an H1 that matches the lesson
+  // title; we already render the title above, so drop it from the markdown
+  // to avoid showing it twice.
+  const match = body.match(/^#\s+.*\n+/);
+  if (!match) return body;
+  const heading = match[0].replace(/^#\s+/, '').trim();
+  if (heading.replace(/\s+/g, ' ').toLowerCase() ===
+      title.replace(/\s+/g, ' ').toLowerCase()) {
+    return body.slice(match[0].length);
+  }
+  return body;
+}
+
 function buildMarkdownStyles(theme: Theme): Record<string, TextStyle | ViewStyle> {
-  // react-native-markdown-display accepts a styles object keyed by markdown
-  // block / inline names. We map them to the app's text variants so the
-  // result matches the rest of the interface.
   return {
-    body: {
-      ...theme.text.body,
-      color: theme.color.text,
-    },
+    body: { ...theme.text.body, color: theme.color.text },
+    text: { color: theme.color.text },
+    textgroup: { color: theme.color.text },
     paragraph: {
       ...theme.text.body,
       color: theme.color.text,
@@ -171,19 +179,9 @@ function buildMarkdownStyles(theme: Theme): Record<string, TextStyle | ViewStyle
       marginTop: theme.space.md,
       marginBottom: theme.space.xs,
     },
-    strong: {
-      ...theme.text.bodyEm,
-      color: theme.color.text,
-    },
-    em: {
-      ...theme.text.body,
-      color: theme.color.text,
-      fontStyle: 'italic',
-    },
-    link: {
-      color: theme.color.accent,
-      textDecorationLine: 'underline',
-    },
+    strong: { ...theme.text.bodyEm, color: theme.color.text },
+    em: { ...theme.text.body, color: theme.color.text, fontStyle: 'italic' },
+    link: { color: theme.color.accent, textDecorationLine: 'underline' },
     list_item: {
       ...theme.text.body,
       color: theme.color.text,
@@ -200,19 +198,15 @@ function buildMarkdownStyles(theme: Theme): Record<string, TextStyle | ViewStyle
       paddingHorizontal: 4,
       borderRadius: 4,
     },
-    code_block: {
-      ...theme.text.tiny,
-      color: theme.color.text,
-      backgroundColor: theme.color.surface,
-      padding: theme.space.md,
-      borderRadius: theme.radius.md,
-    },
     blockquote: {
       ...theme.text.body,
-      color: theme.color.textMuted,
+      color: theme.color.text,
+      backgroundColor: theme.color.surface,
       borderLeftWidth: 3,
-      borderLeftColor: theme.color.border,
+      borderLeftColor: theme.color.accent,
       paddingLeft: theme.space.md,
+      paddingRight: theme.space.md,
+      paddingVertical: theme.space.sm,
       marginVertical: theme.space.sm,
       fontStyle: 'italic',
     },
@@ -230,11 +224,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
   },
-  sourceRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   doneBtn: {
     paddingVertical: 12,
     paddingHorizontal: 16,
