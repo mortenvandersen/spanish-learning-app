@@ -29,6 +29,14 @@ export interface Passage {
   createdAt: string;
 }
 
+export interface UserPassage {
+  id: string;
+  userId: string;
+  title: string | null;
+  body: string;
+  addedAt: string;
+}
+
 export interface Concept {
   id: string;
   title: string;

@@ -20,9 +20,12 @@
       [
         "expo-asset",
         {
-          "assets": ["./content/dictionary/spanish-dictionary.db"]
+          "assets": [
+            "./content/dictionary/spanish-dictionary.db"
+          ]
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

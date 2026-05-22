@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MyLibraryList } from '@/components/MyLibraryList';
 import {
   useMarkRead,
   useMarkUnread,
@@ -19,8 +20,14 @@ import { describeError } from '@/services/errors';
 import { useTheme, type Theme } from '@/theme/useTheme';
 import type { Passage } from '@/types';
 
+type ReadMode = 'featured' | 'library';
 type FilterMode = 'all' | 'unread' | 'read';
 type SortMode = 'order' | 'level';
+
+const MODE_OPTIONS: { label: string; value: ReadMode }[] = [
+  { label: 'Featured', value: 'featured' },
+  { label: 'My library', value: 'library' },
+];
 
 const FILTER_OPTIONS: { label: string; value: FilterMode }[] = [
   { label: 'All', value: 'all' },
@@ -38,6 +45,7 @@ const LEVEL_ORDER: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5 
 export default function ReadScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const [mode, setMode] = useState<ReadMode>('featured');
   const { data, isLoading, error } = usePassages();
   const { data: readIdsList } = useReadPassageIds();
   const markRead = useMarkRead();
@@ -65,6 +73,17 @@ export default function ReadScreen() {
       return a.createdAt.localeCompare(b.createdAt);
     });
   }, [data, filter, sort, readIds]);
+
+  if (mode === 'library') {
+    return (
+      <SafeAreaView edges={['left', 'right']} style={[styles.root, { backgroundColor: theme.color.bg }]}>
+        <View style={styles.controls}>
+          <PillGroup options={MODE_OPTIONS} value={mode} onChange={setMode} theme={theme} />
+        </View>
+        <MyLibraryList onAddPress={() => router.push('/library/new')} />
+      </SafeAreaView>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -100,6 +119,7 @@ export default function ReadScreen() {
   return (
     <SafeAreaView edges={['left', 'right']} style={[styles.root, { backgroundColor: theme.color.bg }]}>
       <View style={styles.controls}>
+        <PillGroup options={MODE_OPTIONS} value={mode} onChange={setMode} theme={theme} />
         <PillGroup
           options={FILTER_OPTIONS}
           value={filter}
