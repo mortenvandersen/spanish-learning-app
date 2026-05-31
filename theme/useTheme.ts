@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useColorScheme } from 'react-native';
 import {
   color,
   fontFamily,
@@ -18,13 +17,12 @@ export interface Theme {
   fontFamily: typeof fontFamily;
 }
 
-/**
- * App theme keyed by the device colour scheme. Defaults to dark when the
- * system reports neither — this app is designed dark-first.
- */
+// Light is forced during the redesign-light branch experiment. To restore
+// system-scheme behaviour, re-import useColorScheme and switch based on it.
+const FORCED_SCHEME: ColorScheme = 'light';
+
 export function useTheme(): Theme {
-  const systemScheme = useColorScheme();
-  const scheme: ColorScheme = systemScheme === 'light' ? 'light' : 'dark';
+  const scheme = FORCED_SCHEME;
   return useMemo(
     () => ({
       scheme,

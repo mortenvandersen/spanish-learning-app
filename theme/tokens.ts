@@ -21,25 +21,27 @@ export const color = {
     text: '#E8EAED',
     textMuted: '#8B95A6',
     textDim: '#5A6373',
-    accent: '#5B6FE0',
-    accentMuted: '#3A4488',
-    captured: '#8A6D00',
+    accent: '#3B5BFE',
+    accentMuted: '#2A3A88',
+    captured: '#FFC107',
     danger: '#E5484D',
     backdrop: 'rgba(0, 0, 0, 0.55)',
   },
+  // Light palette — bright blue primary + yellow accent on a soft blue-tinted
+  // background. Cards stay pure white so they "lift" off the bg with shadow.
   light: {
-    bg: '#FAFAFB',
+    bg: '#F2F5FE',
     surface: '#FFFFFF',
     surfaceElevated: '#FFFFFF',
-    border: '#E5E7EB',
-    text: '#1F2228',
-    textMuted: '#687076',
-    textDim: '#9BA3AF',
-    accent: '#4756C7',
-    accentMuted: '#DCE0F7',
-    captured: '#FFE082',
-    danger: '#CE2C31',
-    backdrop: 'rgba(0, 0, 0, 0.35)',
+    border: '#E5E9F2',
+    text: '#1A2238',
+    textMuted: '#6B7280',
+    textDim: '#9CA3AF',
+    accent: '#2D52FF',
+    accentMuted: '#D9E0FF',
+    captured: '#FFC107',
+    danger: '#E5484D',
+    backdrop: 'rgba(20, 25, 50, 0.35)',
   },
 } as const;
 
@@ -61,9 +63,9 @@ export type SpaceToken = keyof typeof space;
 
 export const radius = {
   sm: 6,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  md: 12,
+  lg: 18,
+  xl: 22,
   full: 999,
 } as const;
 

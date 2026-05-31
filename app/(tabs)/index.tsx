@@ -160,6 +160,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     gap: 16,
+    shadowColor: '#1A2238',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardBody: { flex: 1 },
 });
