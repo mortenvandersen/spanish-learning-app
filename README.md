@@ -12,7 +12,7 @@ Stack: Expo · React Native · TypeScript · Supabase · ElevenLabs.
 - **Tap any word for an instant offline translation.** A bundled 70MB Spanish dictionary handles lookups in milliseconds, with clitic decomposition so forms like *dámelo* or *haciéndome* resolve correctly.
 - **Two reading modes:** a curated starter library, plus a "My library" where the user builds their own collection from text they choose themselves.
 - **Spaced-repetition study.** Captured words flow into an SM-2 flashcard deck with audio playback in your selected voice.
-- **Grammar reference.** Bundled lessons from open educational sources sit alongside the reader.
+- **Grammar reference.** A bundled grammar-lesson library sits alongside the reader.
 
 ## ElevenLabs integration
 
