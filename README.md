@@ -14,6 +14,24 @@ Stack: Expo · React Native · TypeScript · Supabase · ElevenLabs.
 - **Spaced-repetition study.** Captured words flow into an SM-2 flashcard deck with audio playback in your selected voice.
 - **Grammar reference.** A bundled grammar-lesson library sits alongside the reader.
 
+## A typical session
+
+1. Open the **Read** tab → tap **My library** → **+ Add passage** → paste in a Spanish article you actually want to read.
+2. Start reading. Tap any word that's unfamiliar — a popover shows the translation, part of speech, a pronunciation sample, and the lemma if you tapped an inflected form. Tap **Add to deck** to capture it.
+3. Hit play at the top of the passage. Listen in **Mexican / Conversational** by default, or switch to Castilian / Patient teacher / Fast casual if you want to hear something else.
+4. The next day, open **Study**. The words you captured surface as flashcards — once English→Spanish, once Spanish→English, each direction with its own SRS state. Rate **again / hard / good / easy** after each.
+5. Read the next article. The words already in your deck show up tagged "in deck" — no risk of double-capture.
+
+That's the loop. Everything else (grammar lessons, conjugation drills) is supporting material.
+
+## Notable details
+
+- **Capture-to-deck creates two cards, not one.** Adding *perro* to the deck creates an *en→es* card (front: "dog", back: *perro*) and an *es→en* card with independent SRS state, so each direction advances at its own pace. The source sentence the word came from is saved with the card and shown on the back as context — reviewing a word inside the sentence it appeared in is meaningfully more effective than reviewing it bare.
+- **Conjugation cards are a separate deck.** Spanish conjugation is hard enough to deserve dedicated practice. The deck releases cards in batches (you control the pace) and uses cloze-style prompts to drill specific forms in context.
+- **Clitic decomposition is the unsexy hard part.** Forms like *dámelo* (*dar* + *me* + *lo*), *haciéndome*, *decírselo* don't appear in any dictionary as-is. The lookup pipeline strips them in reverse, applying Spanish accent rules, and surfaces both the verb and the clitic decomposition in the popover so the learner understands what the pronouns contributed. Without this, tap-to-translate silently fails on most natural dialogue.
+- **Light-mode design.** Bright blue primary, yellow captured-word accent, soft blue-tinted background, lifted white cards with shadows. The full app is themable so a dark variant is one constant flip away.
+- **No account.** First launch generates a device UUID into secure storage. No email, no password, no analytics, no tracking. RLS on Supabase scopes data per device.
+
 ## ElevenLabs integration
 
 The audio layer is the heart of the product. The architecture is what a real ElevenLabs customer would build — not a naive demo:
