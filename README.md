@@ -34,7 +34,7 @@ That's the loop. Everything else (grammar lessons, conjugation drills) is suppor
 
 ## ElevenLabs integration
 
-The audio layer is an important part of the app as it is the best reflection of actual spoken Spanish. It is improtant for me as I have Spanish family that speaks Spanish at a very high pace. 
+The audio layer is an important part of the app as it is the best reflection of actual spoken Spanish. It is important for me as I have Spanish family that speaks Spanish at a very high pace. 
 
 | Decision | Why |
 |---|---|
