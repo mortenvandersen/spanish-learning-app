@@ -83,8 +83,8 @@ export default function HomeScreen() {
             onPress={() => router.push('/study')}
           />
           <SectionCard
-            icon="bulb"
-            title="Concepts"
+            icon="list"
+            title="Grammar"
             subtitle={
               conceptsTodo === null
                 ? '…'
@@ -93,14 +93,6 @@ export default function HomeScreen() {
                   : `${conceptsTodo} to do`
             }
             theme={theme}
-            onPress={() => router.push('/concepts')}
-          />
-          <SectionCard
-            icon="list"
-            title="Grammar"
-            subtitle="v1.5 — coming soon"
-            theme={theme}
-            muted
             onPress={() => router.push('/grammar')}
           />
       </View>
