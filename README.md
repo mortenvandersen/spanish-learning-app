@@ -28,13 +28,13 @@ That's the loop. Everything else (grammar lessons, conjugation drills) is suppor
 
 - **Capture-to-deck creates two cards, not one.** Adding *perro* to the deck creates an *en→es* card (front: "dog", back: *perro*) and an *es→en* card with independent SRS state, so each direction advances at its own pace. The source sentence the word came from is saved with the card and shown on the back as context — reviewing a word inside the sentence it appeared in is meaningfully more effective than reviewing it bare.
 - **Conjugation cards are a separate deck.** Spanish conjugation is hard enough to deserve dedicated practice. The deck releases cards in batches (you control the pace) and uses cloze-style prompts to drill specific forms in context.
-- **Clitic decomposition is the unsexy hard part.** Forms like *dámelo* (*dar* + *me* + *lo*), *haciéndome*, *decírselo* don't appear in any dictionary as-is. The lookup pipeline strips them in reverse, applying Spanish accent rules, and surfaces both the verb and the clitic decomposition in the popover so the learner understands what the pronouns contributed. Without this, tap-to-translate silently fails on most natural dialogue.
+- **Clitic decomposition is the hard (unseen) part.** Forms like *dámelo* (*dar* + *me* + *lo*), *haciéndome*, *decírselo* don't appear in any dictionary as-is. The lookup pipeline strips them in reverse, applying Spanish accent rules, and surfaces both the verb and the clitic decomposition in the popover so the learner understands what the pronouns contributed. Without this, tap-to-translate silently fails on most natural dialogue.
 - **Light-mode design.** Bright blue primary, yellow captured-word accent, soft blue-tinted background, lifted white cards with shadows. The full app is themable so a dark variant is one constant flip away.
 - **No account.** First launch generates a device UUID into secure storage. No email, no password, no analytics, no tracking. RLS on Supabase scopes data per device.
 
 ## ElevenLabs integration
 
-The audio layer is the heart of the product. The architecture is what a real ElevenLabs customer would build — not a naive demo:
+The audio layer is an important part of the app as it is the best reflection of actual spoken Spanish. It is improtant for me as I have Spanish family that speaks Spanish at a very high pace. 
 
 | Decision | Why |
 |---|---|
@@ -58,4 +58,4 @@ The app generates a device-scoped UUID on first launch. No account, no email, no
 
 ## Why I built this
 
-I'm learning Spanish, and the apps I tried either wouldn't let me read what I actually wanted to read, or had robotic narration. Building it myself solved my problem — and gave me a concrete artifact to talk about how I think about product, cost, and the user experience of a paid API.
+I'm learning Spanish, and the apps I tried either wouldn't let me read what I actually wanted to read, or had robotic narration. Building it myself solved my problem and gave me a chance to develop my skills in both using Claude Code + associated tools and structuring a good learning experience. 
